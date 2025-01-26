@@ -1,7 +1,9 @@
 package main
+
 import (
-	fastmap "github.com/billowdev/fastmap/core"
+	fastmap "github.com/billowdev/fastmap/hashmap"
 )
+
 func main() {
 	// Example usage
 	hashMap := fastmap.NewHashMap[string, int]()

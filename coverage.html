@@ -1,0 +1,887 @@
+
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<title>hashmap: Go Coverage Report</title>
+		<style>
+			body {
+				background: black;
+				color: rgb(80, 80, 80);
+			}
+			body, pre, #legend span {
+				font-family: Menlo, monospace;
+				font-weight: bold;
+			}
+			#topbar {
+				background: black;
+				position: fixed;
+				top: 0; left: 0; right: 0;
+				height: 42px;
+				border-bottom: 1px solid rgb(80, 80, 80);
+			}
+			#content {
+				margin-top: 50px;
+			}
+			#nav, #legend {
+				float: left;
+				margin-left: 10px;
+			}
+			#legend {
+				margin-top: 12px;
+			}
+			#nav {
+				margin-top: 10px;
+			}
+			#legend span {
+				margin: 0 5px;
+			}
+			.cov0 { color: rgb(192, 0, 0) }
+.cov1 { color: rgb(128, 128, 128) }
+.cov2 { color: rgb(116, 140, 131) }
+.cov3 { color: rgb(104, 152, 134) }
+.cov4 { color: rgb(92, 164, 137) }
+.cov5 { color: rgb(80, 176, 140) }
+.cov6 { color: rgb(68, 188, 143) }
+.cov7 { color: rgb(56, 200, 146) }
+.cov8 { color: rgb(44, 212, 149) }
+.cov9 { color: rgb(32, 224, 152) }
+.cov10 { color: rgb(20, 236, 155) }
+
+		</style>
+	</head>
+	<body>
+		<div id="topbar">
+			<div id="nav">
+				<select id="files">
+				
+				<option value="file0">github.com/billowdev/fastmap/hashmap/config_operations.go (100.0%)</option>
+				
+				<option value="file1">github.com/billowdev/fastmap/hashmap/conversion.go (100.0%)</option>
+				
+				<option value="file2">github.com/billowdev/fastmap/hashmap/functional.go (100.0%)</option>
+				
+				<option value="file3">github.com/billowdev/fastmap/hashmap/hashmap.go (100.0%)</option>
+				
+				<option value="file4">github.com/billowdev/fastmap/hashmap/operations.go (100.0%)</option>
+				
+				<option value="file5">github.com/billowdev/fastmap/hashmap/threadsafe.go (100.0%)</option>
+				
+				<option value="file6">github.com/billowdev/fastmap/robinhood/robinhood.go (93.2%)</option>
+				
+				<option value="file7">github.com/billowdev/fastmap/sample/main.go (0.0%)</option>
+				
+				</select>
+			</div>
+			<div id="legend">
+				<span>not tracked</span>
+			
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
+			
+			</div>
+		</div>
+		<div id="content">
+		
+		<pre class="file" id="file0" style="display: none">package fastmap
+
+type FieldConfig[T any] struct {
+        RowIndex *int
+        Handler  func(data map[string]interface{}) *T
+}
+
+func (h *HashMap[K, V]) HandleFieldConfigs(
+        data []map[string]interface{},
+        configs map[K]FieldConfig[V],
+        fieldKey K,
+) []V <span class="cov8" title="1">{
+        result := make([]V, 0, len(data)*len(configs))
+
+        for index, temp := range data </span><span class="cov8" title="1">{
+                if _, exists := h.Get(fieldKey); exists </span><span class="cov8" title="1">{
+                        if handler := configs[fieldKey].Handler; handler != nil </span><span class="cov8" title="1">{
+                                if configs[fieldKey].RowIndex != nil </span><span class="cov8" title="1">{
+                                        *configs[fieldKey].RowIndex = index
+                                }</span>
+                                <span class="cov8" title="1">if value := handler(temp); value != nil </span><span class="cov8" title="1">{
+                                        result = append(result, *value)
+                                }</span>
+                        }
+                }
+        }
+        <span class="cov8" title="1">return result</span>
+}
+
+func (h *HashMap[K, V]) ApplyFieldConfig(
+        key K,
+        config FieldConfig[V],
+        data map[string]interface{},
+) bool <span class="cov8" title="1">{
+        if value := config.Handler(data); value != nil </span><span class="cov8" title="1">{
+                return h.UpdateValue(key, *value)
+        }</span>
+        <span class="cov8" title="1">return false</span>
+}
+
+func (h *HashMap[K, V]) ProcessFieldConfigs(
+        configs map[K]FieldConfig[V],
+        data []map[string]interface{},
+        processor func(key K, value V, index int),
+) <span class="cov8" title="1">{
+        for index, temp := range data </span><span class="cov8" title="1">{
+                for key, config := range configs </span><span class="cov8" title="1">{
+                        if h.Contains(key) </span><span class="cov8" title="1">{
+                                if config.RowIndex != nil </span><span class="cov8" title="1">{
+                                        *config.RowIndex = index
+                                }</span>
+                                <span class="cov8" title="1">if value := config.Handler(temp); value != nil </span><span class="cov8" title="1">{
+                                        if h.UpdateValue(key, *value) </span><span class="cov8" title="1">{
+                                                if processor != nil </span><span class="cov8" title="1">{
+                                                        if val, exists := h.Get(key); exists </span><span class="cov8" title="1">{
+                                                                processor(key, val, index)
+                                                        }</span>
+                                                }
+                                        }
+                                }
+                        }
+                }
+        }
+}
+</pre>
+		
+		<pre class="file" id="file1" style="display: none">package fastmap
+
+// ToMap returns the underlying map
+// Example:
+//
+//        standardMap := hashMap.ToMap()
+//        for k, v := range standardMap {
+//            fmt.Printf("%v: %v\n", k, v)
+//        }
+func (h *HashMap[K, V]) ToMap() map[K]V <span class="cov8" title="1">{
+        result := make(map[K]V, len(h.data))
+        for k, v := range h.data </span><span class="cov8" title="1">{
+                result[k] = v
+        }</span>
+        <span class="cov8" title="1">return result</span>
+}
+
+// FromMap creates a new HashMap from a regular map
+// Example:
+//
+//        regularMap := map[string]int{"one": 1, "two": 2}
+//        hashMap := FromMap(regularMap)
+func FromMap[K comparable, V any](m map[K]V) *HashMap[K, V] <span class="cov8" title="1">{
+        h := NewHashMap[K, V]()
+        for k, v := range m </span><span class="cov8" title="1">{
+                h.Put(k, v)
+        }</span>
+        <span class="cov8" title="1">return h</span>
+}
+</pre>
+		
+		<pre class="file" id="file2" style="display: none">package fastmap
+
+// Filter returns a new HashMap containing only the elements that satisfy the predicate
+// Example:
+//
+//        activeUsers := hashMap.Filter(func(key string, user User) bool {
+//            return user.Active
+//        })
+func (h *HashMap[K, V]) Filter(predicate func(K, V) bool) *HashMap[K, V] <span class="cov8" title="1">{
+        result := NewHashMap[K, V]()
+        for k, v := range h.data </span><span class="cov8" title="1">{
+                if predicate(k, v) </span><span class="cov8" title="1">{
+                        result.Put(k, v)
+                }</span>
+        }
+        <span class="cov8" title="1">return result</span>
+}
+
+// Map transforms values using the provided function and returns a new HashMap
+// Example:
+//
+//        upperNames := hashMap.Map(func(key string, user User) User {
+//            user.Name = strings.ToUpper(user.Name)
+//            return user
+//        })
+func (h *HashMap[K, V]) Map(transform func(K, V) V) *HashMap[K, V] <span class="cov8" title="1">{
+        result := NewHashMap[K, V]()
+        for k, v := range h.data </span><span class="cov8" title="1">{
+                result.Put(k, transform(k, v))
+        }</span>
+        <span class="cov8" title="1">return result</span>
+}
+
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package fastmap
+
+type ValueCallback[K comparable, V any] func(key K, value V)
+
+// HashMap is a generic key-value store supporting comparable keys and any value type
+// Example:
+//
+//        hashMap := NewHashMap[string, int]()
+type HashMap[K comparable, V any] struct {
+        data map[K]V
+}
+
+// NewHashMap creates a new empty HashMap
+// Example:
+//
+//        hashMap := NewHashMap[string, User]()
+func NewHashMap[K comparable, V any]() *HashMap[K, V] <span class="cov8" title="1">{
+        return &amp;HashMap[K, V]{
+                data: make(map[K]V),
+        }
+}</span>
+
+// Put adds or updates a key-value pair in the HashMap
+// Example:
+//
+//        hashMap.Put("user123", User{Name: "John"})
+func (h *HashMap[K, V]) Put(key K, value V) <span class="cov8" title="1">{
+        h.data[key] = value
+}</span>
+
+// Get retrieves a value by key and returns whether it exists
+// Example:
+//
+//        if user, exists := hashMap.Get("user123"); exists {
+//            fmt.Printf("Found user: %v\n", user)
+//        }
+func (h *HashMap[K, V]) Get(key K) (V, bool) <span class="cov8" title="1">{
+        value, exists := h.data[key]
+        return value, exists
+}</span>
+
+// Remove deletes a key-value pair from the HashMap
+// Example:
+//
+//        hashMap.Remove("user123")
+func (h *HashMap[K, V]) Remove(key K) <span class="cov8" title="1">{
+        delete(h.data, key)
+}</span>
+
+// Size returns the number of elements in the HashMap
+// Example:
+//
+//        count := hashMap.Size()
+//        fmt.Printf("HashMap contains %d elements\n", count)
+func (h *HashMap[K, V]) Size() int <span class="cov8" title="1">{
+        return len(h.data)
+}</span>
+</pre>
+		
+		<pre class="file" id="file4" style="display: none">package fastmap
+
+// Clear removes all elements from the HashMap
+// Example:
+//
+//        hashMap.Clear()
+//        fmt.Printf("Size after clear: %d\n", hashMap.Size())
+func (h *HashMap[K, V]) Clear() <span class="cov8" title="1">{
+        h.data = make(map[K]V)
+}</span>
+
+// Contains checks if a key exists in the HashMap
+// Example:
+//
+//        if hashMap.Contains("user123") {
+//            fmt.Println("User exists")
+//        }
+func (h *HashMap[K, V]) Contains(key K) bool <span class="cov8" title="1">{
+        _, exists := h.data[key]
+        return exists
+}</span>
+
+// IsEmpty returns true if the HashMap has no elements
+// Example:
+//
+//        if hashMap.IsEmpty() {
+//            fmt.Println("HashMap is empty")
+//        }
+func (h *HashMap[K, V]) IsEmpty() bool <span class="cov8" title="1">{
+        return len(h.data) == 0
+}</span>
+
+// Keys returns a slice of all keys in the HashMap
+// Example:
+//
+//        keys := hashMap.Keys()
+//        for _, key := range keys {
+//            fmt.Printf("Key: %v\n", key)
+//        }
+func (h *HashMap[K, V]) Keys() []K <span class="cov8" title="1">{
+        keys := make([]K, 0, len(h.data))
+        for k := range h.data </span><span class="cov8" title="1">{
+                keys = append(keys, k)
+        }</span>
+        <span class="cov8" title="1">return keys</span>
+}
+
+// Values returns a slice of all values in the HashMap
+// Example:
+//
+//        values := hashMap.Values()
+//        for _, value := range values {
+//            fmt.Printf("Value: %v\n", value)
+//        }
+func (h *HashMap[K, V]) Values() []V <span class="cov8" title="1">{
+        values := make([]V, 0, len(h.data))
+        for _, v := range h.data </span><span class="cov8" title="1">{
+                values = append(values, v)
+        }</span>
+        <span class="cov8" title="1">return values</span>
+}
+
+// ForEach executes a callback function for each key-value pair
+// Example:
+//
+//        hashMap.ForEach(func(key string, value User) {
+//            fmt.Printf("User %s: %v\n", key, value)
+//        })
+func (h *HashMap[K, V]) ForEach(callback ValueCallback[K, V]) <span class="cov8" title="1">{
+        for k, v := range h.data </span><span class="cov8" title="1">{
+                callback(k, v)
+        }</span>
+}
+
+// UpdateValue updates an existing value by key, returns false if key doesn't exist
+// Example:
+//
+//        if hashMap.UpdateValue("user123", updatedUser) {
+//            fmt.Println("User updated successfully")
+//        }
+func (h *HashMap[K, V]) UpdateValue(id K, newValue V) bool <span class="cov8" title="1">{
+        if _, exists := h.data[id]; exists </span><span class="cov8" title="1">{
+                h.data[id] = newValue
+                return true
+        }</span>
+        <span class="cov8" title="1">return false</span>
+}
+
+// PutAll adds all key-value pairs from another HashMap
+// Example:
+//
+//        otherMap := NewHashMap[string, User]()
+//        otherMap.Put("user456", newUser)
+//        hashMap.PutAll(otherMap)
+func (h *HashMap[K, V]) PutAll(other *HashMap[K, V]) <span class="cov8" title="1">{
+        for k, v := range other.data </span><span class="cov8" title="1">{
+                h.data[k] = v
+        }</span>
+}
+</pre>
+		
+		<pre class="file" id="file5" style="display: none">package fastmap
+
+import (
+        "sync"
+)
+
+// ThreadSafeHashMap provides thread-safe operations for HashMap through mutex synchronization
+// Example:
+//
+//        safeMap := NewThreadSafeHashMap[string, User]()
+//        safeMap.Put("user1", User{Name: "John"})
+type ThreadSafeHashMap[K comparable, V any] struct {
+        mutex sync.RWMutex
+        data  *HashMap[K, V]
+}
+
+// NewThreadSafeHashMap creates a new thread-safe HashMap
+// Example:
+//
+//        safeMap := NewThreadSafeHashMap[string, User]()
+func NewThreadSafeHashMap[K comparable, V any]() *ThreadSafeHashMap[K, V] <span class="cov8" title="1">{
+        return &amp;ThreadSafeHashMap[K, V]{
+                data: NewHashMap[K, V](),
+        }
+}</span>
+
+// Put adds or updates a key-value pair in the ThreadSafeHashMap with write lock
+// Example:
+//
+//        safeMap.Put("user123", User{Name: "John"})
+func (t *ThreadSafeHashMap[K, V]) Put(key K, value V) <span class="cov8" title="1">{
+        t.mutex.Lock()
+        defer t.mutex.Unlock()
+        t.data.Put(key, value)
+}</span>
+
+// Get retrieves a value by key and returns whether it exists with read lock
+// Example:
+//
+//        if user, exists := safeMap.Get("user123"); exists {
+//            fmt.Printf("Found user: %v\n", user)
+//        }
+func (t *ThreadSafeHashMap[K, V]) Get(key K) (V, bool) <span class="cov8" title="1">{
+        t.mutex.RLock()
+        defer t.mutex.RUnlock()
+        return t.data.Get(key)
+}</span>
+
+// Remove deletes a key-value pair from the ThreadSafeHashMap with write lock
+// Example:
+//
+//        safeMap.Remove("user123")
+func (t *ThreadSafeHashMap[K, V]) Remove(key K) <span class="cov8" title="1">{
+        t.mutex.Lock()
+        defer t.mutex.Unlock()
+        t.data.Remove(key)
+}</span>
+
+// Size returns the number of elements in the ThreadSafeHashMap with read lock
+// Example:
+//
+//        count := safeMap.Size()
+//        fmt.Printf("HashMap contains %d elements\n", count)
+func (t *ThreadSafeHashMap[K, V]) Size() int <span class="cov8" title="1">{
+        t.mutex.RLock()
+        defer t.mutex.RUnlock()
+        return t.data.Size()
+}</span>
+
+// Clear removes all elements from the ThreadSafeHashMap with write lock
+// Example:
+//
+//        safeMap.Clear()
+//        fmt.Printf("Size after clear: %d\n", safeMap.Size())
+func (t *ThreadSafeHashMap[K, V]) Clear() <span class="cov8" title="1">{
+        t.mutex.Lock()
+        defer t.mutex.Unlock()
+        t.data.Clear()
+}</span>
+
+// Contains checks if a key exists in the ThreadSafeHashMap with read lock
+// Example:
+//
+//        if safeMap.Contains("user123") {
+//            fmt.Println("User exists")
+//        }
+func (t *ThreadSafeHashMap[K, V]) Contains(key K) bool <span class="cov8" title="1">{
+        t.mutex.RLock()
+        defer t.mutex.RUnlock()
+        return t.data.Contains(key)
+}</span>
+
+// IsEmpty returns true if the ThreadSafeHashMap has no elements with read lock
+// Example:
+//
+//        if safeMap.IsEmpty() {
+//            fmt.Println("HashMap is empty")
+//        }
+func (t *ThreadSafeHashMap[K, V]) IsEmpty() bool <span class="cov8" title="1">{
+        t.mutex.RLock()
+        defer t.mutex.RUnlock()
+        return t.data.IsEmpty()
+}</span>
+
+// Keys returns a slice of all keys in the ThreadSafeHashMap with read lock
+// Example:
+//
+//        keys := safeMap.Keys()
+//        for _, key := range keys {
+//            fmt.Printf("Key: %v\n", key)
+//        }
+func (t *ThreadSafeHashMap[K, V]) Keys() []K <span class="cov8" title="1">{
+        t.mutex.RLock()
+        defer t.mutex.RUnlock()
+        return t.data.Keys()
+}</span>
+
+// Values returns a slice of all values in the ThreadSafeHashMap with read lock
+// Example:
+//
+//        values := safeMap.Values()
+//        for _, value := range values {
+//            fmt.Printf("Value: %v\n", value)
+//        }
+func (t *ThreadSafeHashMap[K, V]) Values() []V <span class="cov8" title="1">{
+        t.mutex.RLock()
+        defer t.mutex.RUnlock()
+        return t.data.Values()
+}</span>
+
+// ForEach executes a callback function for each key-value pair with read lock
+// Example:
+//
+//        safeMap.ForEach(func(key string, value User) {
+//            fmt.Printf("User %s: %v\n", key, value)
+//        })
+func (t *ThreadSafeHashMap[K, V]) ForEach(callback ValueCallback[K, V]) <span class="cov8" title="1">{
+        t.mutex.RLock()
+        defer t.mutex.RUnlock()
+        t.data.ForEach(callback)
+}</span>
+
+// Filter returns a new ThreadSafeHashMap containing only the elements that satisfy the predicate with read lock
+// Example:
+//
+//        activeUsers := safeMap.Filter(func(key string, user User) bool {
+//            return user.Active
+//        })
+func (t *ThreadSafeHashMap[K, V]) Filter(predicate func(K, V) bool) *ThreadSafeHashMap[K, V] <span class="cov8" title="1">{
+        t.mutex.RLock()
+        defer t.mutex.RUnlock()
+        result := NewThreadSafeHashMap[K, V]()
+        result.data = t.data.Filter(predicate)
+        return result
+}</span>
+
+// Map transforms values using the provided function and returns a new ThreadSafeHashMap with read lock
+// Example:
+//
+//        upperNames := safeMap.Map(func(key string, user User) User {
+//            user.Name = strings.ToUpper(user.Name)
+//            return user
+//        })
+func (t *ThreadSafeHashMap[K, V]) Map(transform func(K, V) V) *ThreadSafeHashMap[K, V] <span class="cov8" title="1">{
+        t.mutex.RLock()
+        defer t.mutex.RUnlock()
+        result := NewThreadSafeHashMap[K, V]()
+        result.data = t.data.Map(transform)
+        return result
+}</span>
+
+// UpdateValue updates an existing value by key with write lock, returns false if key doesn't exist
+// Example:
+//
+//        if safeMap.UpdateValue("user123", updatedUser) {
+//            fmt.Println("User updated successfully")
+//        }
+func (t *ThreadSafeHashMap[K, V]) UpdateValue(key K, newValue V) bool <span class="cov8" title="1">{
+        t.mutex.Lock()
+        defer t.mutex.Unlock()
+        return t.data.UpdateValue(key, newValue)
+}</span>
+
+// PutAll adds all key-value pairs from another ThreadSafeHashMap with write lock
+// Example:
+//
+//        otherMap := NewThreadSafeHashMap[string, User]()
+//        otherMap.Put("user456", newUser)
+//        safeMap.PutAll(otherMap)
+func (t *ThreadSafeHashMap[K, V]) PutAll(other *ThreadSafeHashMap[K, V]) <span class="cov8" title="1">{
+        other.mutex.RLock()
+        t.mutex.Lock()
+        defer other.mutex.RUnlock()
+        defer t.mutex.Unlock()
+        t.data.PutAll(other.data)
+}</span>
+
+// ToMap returns the underlying map with read lock
+// Example:
+//
+//        standardMap := safeMap.ToMap()
+//        for k, v := range standardMap {
+//            fmt.Printf("%v: %v\n", k, v)
+//        }
+func (t *ThreadSafeHashMap[K, V]) ToMap() map[K]V <span class="cov8" title="1">{
+        t.mutex.RLock()
+        defer t.mutex.RUnlock()
+        return t.data.ToMap()
+}</span>
+
+// FromThreadSafeMap creates a new ThreadSafeHashMap from a regular map
+// Example:
+//
+//        regularMap := map[string]int{"one": 1, "two": 2}
+//        safeMap := FromThreadSafeMap(regularMap)
+func FromThreadSafeMap[K comparable, V any](m map[K]V) *ThreadSafeHashMap[K, V] <span class="cov8" title="1">{
+        result := NewThreadSafeHashMap[K, V]()
+        result.data = FromMap(m)
+        return result
+}</span>
+
+// HandleFieldConfigs processes data using field configurations and returns results
+// Example:
+//
+//        configs := map[string]FieldConfig[int]{
+//            "field1": {
+//                Handler: func(data map[string]interface{}) *int {
+//                    if val, ok := data["value"].(int); ok {
+//                        return &amp;val
+//                    }
+//                    return nil
+//                },
+//            },
+//        }
+//        results := safeMap.HandleFieldConfigs(data, configs, "field1")
+func (t *ThreadSafeHashMap[K, V]) HandleFieldConfigs(
+        data []map[string]interface{},
+        configs map[K]FieldConfig[V],
+        fieldKey K,
+) []V <span class="cov8" title="1">{
+        t.mutex.RLock()
+        defer t.mutex.RUnlock()
+        return t.data.HandleFieldConfigs(data, configs, fieldKey)
+}</span>
+
+// ApplyFieldConfig applies a single field configuration to data
+// Example:
+//
+//        config := FieldConfig[int]{
+//            Handler: func(data map[string]interface{}) *int {
+//                if val, ok := data["value"].(int); ok {
+//                    return &amp;val
+//                }
+//                return nil
+//            },
+//        }
+//        success := safeMap.ApplyFieldConfig("field1", config, data)
+func (t *ThreadSafeHashMap[K, V]) ApplyFieldConfig(
+        key K,
+        config FieldConfig[V],
+        data map[string]interface{},
+) bool <span class="cov8" title="1">{
+        t.mutex.Lock()
+        defer t.mutex.Unlock()
+        return t.data.ApplyFieldConfig(key, config, data)
+}</span>
+
+// ProcessFieldConfigs processes data using field configurations with a callback
+// Example:
+//
+//        configs := map[string]FieldConfig[int]{
+//            "field1": {
+//                Handler: func(data map[string]interface{}) *int {
+//                    if val, ok := data["value"].(int); ok {
+//                        return &amp;val
+//                    }
+//                    return nil
+//                },
+//            },
+//        }
+//        safeMap.ProcessFieldConfigs(configs, data, func(key string, value int, index int) {
+//            fmt.Printf("Processed: %s = %d at index %d\n", key, value, index)
+//        })
+func (t *ThreadSafeHashMap[K, V]) ProcessFieldConfigs(
+        configs map[K]FieldConfig[V],
+        data []map[string]interface{},
+        processor func(key K, value V, index int),
+) <span class="cov8" title="1">{
+        t.mutex.Lock()
+        defer t.mutex.Unlock()
+        t.data.ProcessFieldConfigs(configs, data, processor)
+}</span>
+</pre>
+		
+		<pre class="file" id="file6" style="display: none">package fastmap
+
+import (
+        "fmt"
+        "hash/maphash"
+)
+
+type RobinHoodMap[K comparable, V any] struct {
+        entries    []entry[K, V]
+        size       int
+        mask       uint64
+        loadFactor float64
+        hasher     maphash.Hash
+}
+
+type entry[K comparable, V any] struct {
+        key      K
+        value    V
+        distance uint8
+        occupied bool
+}
+
+func NewRobinHoodMap[K comparable, V any]() *RobinHoodMap[K, V] <span class="cov8" title="1">{
+        initialSize := 8
+        return &amp;RobinHoodMap[K, V]{
+                entries:    make([]entry[K, V], initialSize),
+                mask:       uint64(initialSize - 1),
+                loadFactor: 0.75,
+                hasher:     maphash.Hash{},
+        }
+}</span>
+
+func (m *RobinHoodMap[K, V]) hash(key K) uint64 <span class="cov8" title="1">{
+        m.hasher.Write([]byte(fmt.Sprintf("%v", key)))
+        defer m.hasher.Reset()
+        return m.hasher.Sum64()
+}</span>
+
+func (m *RobinHoodMap[K, V]) Put(key K, value V) <span class="cov8" title="1">{
+        if float64(m.size+1)/float64(len(m.entries)) &gt; m.loadFactor </span><span class="cov8" title="1">{
+                m.resize()
+        }</span>
+
+        <span class="cov8" title="1">hash := m.hash(key)
+        index := hash &amp; m.mask
+        dist := uint8(0)
+
+        for </span><span class="cov8" title="1">{
+                entry := &amp;m.entries[index]
+
+                if !entry.occupied </span><span class="cov8" title="1">{
+                        entry.key = key
+                        entry.value = value
+                        entry.distance = dist
+                        entry.occupied = true
+                        m.size++
+                        return
+                }</span>
+
+                <span class="cov8" title="1">if entry.key == key </span><span class="cov8" title="1">{
+                        entry.value = value
+                        return
+                }</span>
+
+                // Robin Hood: rich (current entry) vs poor (new entry)
+                <span class="cov8" title="1">if dist &gt; entry.distance </span><span class="cov8" title="1">{
+                        // Swap entries
+                        key, entry.key = entry.key, key
+                        value, entry.value = entry.value, value
+                        dist, entry.distance = entry.distance, dist
+                }</span>
+
+                <span class="cov8" title="1">dist++
+                index = (index + 1) &amp; m.mask</span>
+        }
+}
+
+func (m *RobinHoodMap[K, V]) Get(key K) (V, bool) <span class="cov8" title="1">{
+        hash := m.hash(key)
+        index := hash &amp; m.mask
+        dist := uint8(0)
+
+        for </span><span class="cov8" title="1">{
+                entry := &amp;m.entries[index]
+                if !entry.occupied || dist &gt; entry.distance </span><span class="cov8" title="1">{
+                        var zero V
+                        return zero, false
+                }</span>
+                <span class="cov8" title="1">if entry.key == key </span><span class="cov8" title="1">{
+                        return entry.value, true
+                }</span>
+                <span class="cov8" title="1">dist++
+                index = (index + 1) &amp; m.mask</span>
+        }
+}
+
+func (m *RobinHoodMap[K, V]) Remove(key K) bool <span class="cov8" title="1">{
+        hash := m.hash(key)
+        index := hash &amp; m.mask
+        dist := uint8(0)
+
+        for </span><span class="cov8" title="1">{
+                entry := &amp;m.entries[index]
+                if !entry.occupied || dist &gt; entry.distance </span><span class="cov8" title="1">{
+                        return false
+                }</span>
+                <span class="cov8" title="1">if entry.key == key </span><span class="cov8" title="1">{
+                        // Found the entry to remove
+                        m.size--
+
+                        // Backward shift deletion
+                        nextIndex := (index + 1) &amp; m.mask
+                        for </span><span class="cov8" title="1">{
+                                nextEntry := &amp;m.entries[nextIndex]
+                                if !nextEntry.occupied || nextEntry.distance == 0 </span><span class="cov8" title="1">{
+                                        entry.occupied = false
+                                        return true
+                                }</span>
+                                <span class="cov0" title="0">*entry = *nextEntry
+                                entry.distance--
+                                index = nextIndex
+                                nextIndex = (nextIndex + 1) &amp; m.mask
+                                entry = &amp;m.entries[index]</span>
+                        }
+                }
+                <span class="cov8" title="1">dist++
+                index = (index + 1) &amp; m.mask</span>
+        }
+}
+
+func (m *RobinHoodMap[K, V]) resize() <span class="cov8" title="1">{
+        oldEntries := m.entries
+        newSize := len(m.entries) * 2
+        m.entries = make([]entry[K, V], newSize)
+        m.mask = uint64(newSize - 1)
+        m.size = 0
+
+        for i := range oldEntries </span><span class="cov8" title="1">{
+                if oldEntries[i].occupied </span><span class="cov8" title="1">{
+                        m.Put(oldEntries[i].key, oldEntries[i].value)
+                }</span>
+        }
+}
+
+func (m *RobinHoodMap[K, V]) Size() int <span class="cov8" title="1">{
+        return m.size
+}</span>
+
+func (m *RobinHoodMap[K, V]) Clear() <span class="cov8" title="1">{
+        m.entries = make([]entry[K, V], 8)
+        m.mask = 7
+        m.size = 0
+}</span>
+</pre>
+		
+		<pre class="file" id="file7" style="display: none">package main
+
+import (
+        fastmap "github.com/billowdev/fastmap/hashmap"
+)
+
+func main() <span class="cov0" title="0">{
+        // Example usage
+        hashMap := fastmap.NewHashMap[string, int]()
+
+        // Add some values
+        hashMap.Put("one", 1)
+        hashMap.Put("two", 2)
+        hashMap.Put("three", 3)
+
+        // Use callback function to print all entries
+        hashMap.ForEach(func(key string, value int) </span><span class="cov0" title="0">{
+                println(key, ":", value)
+        }</span>)
+
+        // Get a value
+        <span class="cov0" title="0">if value, exists := hashMap.Get("two"); exists </span><span class="cov0" title="0">{
+                println("Value for 'two':", value)
+        }</span>
+
+        // Remove a value
+        <span class="cov0" title="0">hashMap.Remove("one")
+        println("Size after removal:", hashMap.Size())</span>
+}
+</pre>
+		
+		</div>
+	</body>
+	<script>
+	(function() {
+		var files = document.getElementById('files');
+		var visible;
+		files.addEventListener('change', onChange, false);
+		function select(part) {
+			if (visible)
+				visible.style.display = 'none';
+			visible = document.getElementById(part);
+			if (!visible)
+				return;
+			files.value = part;
+			visible.style.display = 'block';
+			location.hash = part;
+		}
+		function onChange() {
+			select(files.value);
+			window.scrollTo(0, 0);
+		}
+		if (location.hash != "") {
+			select(location.hash.substr(1));
+		}
+		if (!visible) {
+			select("file0");
+		}
+	})();
+	</script>
+</html>
