@@ -1,6 +1,50 @@
-# `fastmap` Generic HashMap Package
+# FastMap - A Type-Safe Generic HashMap Implementation in Go
 
-A type-safe, generic HashMap implementation in Go with both thread-safe and non-thread-safe variants.
+FastMap currently provides an efficient, type-safe HashMap implementation in Go, offering both thread-safe and non-thread-safe variants. Future releases will expand this into a comprehensive utilities package.
+
+Current Feature Implementation Status:
+
+[x] Core HashMap Implementation
+- Basic HashMap operations (Put, Get, Remove)
+- Type-safe implementation using Go generics
+- Full error handling
+- Comprehensive unit tests
+- Performance-optimized operations
+
+[x] Thread-Safe HashMap
+- Mutex-protected operations
+- Concurrent access support
+- Thread-safe variants of all core operations
+- Deadlock prevention
+- Performance benchmarks for concurrent operations
+
+[x] AppendableHashMap
+- Specialized slice handling
+- Type-safe append operations
+- Thread-safe variant available
+- Optimized memory management
+- Comprehensive testing coverage
+
+[x] Functional Operations
+- Map transformations
+- Filtering capabilities
+- ForEach operations with error handling
+- Chainable operations
+- Performance benchmarks
+
+Planned Future Enhancements:
+[ ]  RobinHood HashMap Implementation
+[ ] Binary Search Tree Implementation
+[ ] Struct-to-Struct Conversion
+[ ] Case Conversion Utilities
+[ ] Additional Data Structure Support
+[ ] Extended Utility Functions
+[ ] Advanced Type Conversion Tools
+[ ] Deep Copy Functionality
+
+The current version focuses on providing a robust and efficient HashMap implementation. Future releases will expand the package's capabilities to include additional data structures and utility functions.
+
+For detailed documentation and usage examples of the current features, please refer to the package documentation.
 
 ## Installation
 
