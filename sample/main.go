@@ -14,9 +14,12 @@ func main() {
 	hashMap.Put("three", 3)
 
 	// Use callback function to print all entries
-	hashMap.ForEach(func(key string, value int) {
+	if err := hashMap.ForEach(func(key string, value int) error {
 		println(key, ":", value)
-	})
+		return nil
+	}); err != nil {
+		println("Error during ForEach:", err)
+	}
 
 	// Get a value
 	if value, exists := hashMap.Get("two"); exists {

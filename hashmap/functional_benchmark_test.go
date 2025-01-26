@@ -32,7 +32,6 @@ func BenchmarkHashMapMapLarge(b *testing.B) {
 		})
 	}
 }
-
 func BenchmarkHashMapForEachLarge(b *testing.B) {
 	h := fastmap.NewHashMap[string, int]()
 	for i := 0; i < 10000; i++ {
@@ -41,9 +40,12 @@ func BenchmarkHashMapForEachLarge(b *testing.B) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		sum := 0
-		h.ForEach(func(k string, v int) {
+		if err := h.ForEach(func(k string, v int) error {
 			sum += v % 10
-		})
+			return nil
+		}); err != nil {
+			b.Fatalf("ForEach failed: %v", err)
+		}
 	}
 }
 

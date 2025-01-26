@@ -130,9 +130,14 @@ func TestForEachWithModification(t *testing.T) {
 
 	// Create copy of map to iterate safely
 	mapCopy := make(map[string]int)
-	h.ForEach(func(k string, v int) {
+	err := h.ForEach(func(k string, v int) error {
 		mapCopy[k] = v
+		return nil
 	})
+
+	if err != nil {
+		t.Errorf("ForEach failed: %v", err)
+	}
 
 	// Modify using the copy
 	for k, v := range mapCopy {
@@ -283,9 +288,13 @@ func TestLargeDataSetOperations(t *testing.T) {
 
 	// Test ForEach on large dataset
 	count := 0
-	h.ForEach(func(k string, v int) {
+	err := h.ForEach(func(k string, v int) error {
 		count++
+		return nil
 	})
+	if err != nil {
+		t.Errorf("ForEach failed: %v", err)
+	}
 
 	if count != numItems {
 		t.Errorf("ForEach processed %d items, expected %d", count, numItems)
@@ -341,9 +350,13 @@ func TestEdgeCaseEmptyMaps(t *testing.T) {
 	if !h.IsEmpty() {
 		t.Error("IsEmpty failed after removing last element")
 	}
-	h.ForEach(func(k string, v struct{}) {
+	err := h.ForEach(func(k string, v struct{}) error {
 		t.Error("ForEach should not execute on empty map")
+		return nil
 	})
+	if err != nil {
+		t.Error("ForEach on empty map should not return error")
+	}
 	if h.Filter(func(k string, v struct{}) bool { return true }).Size() != 0 {
 		t.Error("Filter on empty map should return empty map")
 	}

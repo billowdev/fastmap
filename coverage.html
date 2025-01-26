@@ -65,9 +65,9 @@
 				
 				<option value="file4">github.com/billowdev/fastmap/hashmap/operations.go (100.0%)</option>
 				
-				<option value="file5">github.com/billowdev/fastmap/hashmap/threadsafe.go (100.0%)</option>
+				<option value="file5">github.com/billowdev/fastmap/hashmap/threadsafe.go (91.4%)</option>
 				
-				<option value="file6">github.com/billowdev/fastmap/robinhood/robinhood.go (93.2%)</option>
+				<option value="file6">github.com/billowdev/fastmap/robinhood/robinhood.go (97.3%)</option>
 				
 				<option value="file7">github.com/billowdev/fastmap/sample/main.go (0.0%)</option>
 				
@@ -373,6 +373,53 @@ func (h *HashMap[K, V]) PutAll(other *HashMap[K, V]) <span class="cov8" title="1
                 h.data[k] = v
         }</span>
 }
+
+// AppendableHashMap extends HashMap to provide specialized functionality for handling slice operations.
+// It maintains type safety through generics while providing convenient methods for appending values
+// to existing slices within the map.
+//
+// Example:
+//
+//        layoutMap := NewAppendableHashMap[string, Component]()
+//        layoutMap.AppendValues("section1", component1, component2)
+//        layoutMap.AppendValues("section1", component3) // Appends to existing slice
+type AppendableHashMap[K comparable, V any] struct {
+        *HashMap[K, []V]
+}
+
+// NewAppendableHashMap creates a new instance of AppendableHashMap that safely manages
+// slices of values associated with keys. It initializes an underlying HashMap to store
+// the key-value pairs where values are slices.
+//
+// Example:
+//
+//        map := NewAppendableHashMap[string, int]()
+//        map.AppendValues("key1", 1, 2, 3)
+func NewAppendableHashMap[K comparable, V any]() *AppendableHashMap[K, V] <span class="cov8" title="1">{
+        return &amp;AppendableHashMap[K, V]{
+                HashMap: NewHashMap[K, []V](),
+        }
+}</span>
+
+// AppendValues appends multiple values to an existing slice for a given key.
+// If the key doesn't exist, it creates a new slice with the provided values.
+// This method provides a safe way to handle the spread operator equivalent in Go.
+//
+// Parameters:
+//   - key: The key to associate the values with
+//   - values: Variadic parameter of values to append
+//
+// Example:
+//
+//        map.AppendValues("components", component1, component2)
+//        map.AppendValues("components", component3) // Appends to existing slice
+func (h *AppendableHashMap[K, V]) AppendValues(key K, values ...V) <span class="cov8" title="1">{
+        if existing, exists := h.Get(key); exists </span><span class="cov8" title="1">{
+                h.Put(key, append(existing, values...))
+        }</span> else<span class="cov8" title="1"> {
+                h.Put(key, values)
+        }</span>
+}
 </pre>
 		
 		<pre class="file" id="file5" style="display: none">package fastmap
@@ -667,6 +714,59 @@ func (t *ThreadSafeHashMap[K, V]) ProcessFieldConfigs(
         defer t.mutex.Unlock()
         t.data.ProcessFieldConfigs(configs, data, processor)
 }</span>
+
+// ThreadSafeAppendableHashMap provides thread-safe operations for handling slice values
+// in a concurrent environment. It uses mutex locks to ensure safe access and modification
+// of the underlying data structure.
+//
+// Example:
+//
+//        safeMap := NewThreadSafeAppendableHashMap[string, Component]()
+//        // Safe for concurrent access
+//        go func() { safeMap.AppendValues("section1", component1) }()
+//        go func() { safeMap.AppendValues("section1", component2) }()
+type ThreadSafeAppendableHashMap[K comparable, V any] struct {
+        *ThreadSafeHashMap[K, []V]
+}
+
+// NewThreadSafeAppendableHashMap creates a new instance of ThreadSafeAppendableHashMap
+// that provides synchronized access to slice operations. It's suitable for concurrent
+// environments where multiple goroutines might append values simultaneously.
+//
+// Example:
+//
+//        safeMap := NewThreadSafeAppendableHashMap[string, int]()
+//        // Safe for concurrent operations
+//        go func() { safeMap.AppendValues("key1", 1, 2) }()
+func NewThreadSafeAppendableHashMap[K comparable, V any]() *ThreadSafeAppendableHashMap[K, V] <span class="cov0" title="0">{
+        return &amp;ThreadSafeAppendableHashMap[K, V]{
+                ThreadSafeHashMap: NewThreadSafeHashMap[K, []V](),
+        }
+}</span>
+
+// AppendValues safely appends multiple values to an existing slice for a given key
+// in a thread-safe manner. It uses mutex locks to ensure concurrent safety during
+// the append operation.
+//
+// Parameters:
+//   - key: The key to associate the values with
+//   - values: Variadic parameter of values to append
+//
+// Example:
+//
+//        safeMap.AppendValues("users", user1, user2)
+//        // Concurrent access is safe
+//        go safeMap.AppendValues("users", user3)
+func (t *ThreadSafeAppendableHashMap[K, V]) AppendValues(key K, values ...V) <span class="cov0" title="0">{
+        t.mutex.Lock()
+        defer t.mutex.Unlock()
+
+        if existing, exists := t.data.Get(key); exists </span><span class="cov0" title="0">{
+                t.data.Put(key, append(existing, values...))
+        }</span> else<span class="cov0" title="0"> {
+                t.data.Put(key, values)
+        }</span>
+}
 </pre>
 		
 		<pre class="file" id="file6" style="display: none">package fastmap
@@ -787,14 +887,14 @@ func (m *RobinHoodMap[K, V]) Remove(key K) bool <span class="cov8" title="1">{
                                         entry.occupied = false
                                         return true
                                 }</span>
-                                <span class="cov0" title="0">*entry = *nextEntry
+                                <span class="cov8" title="1">*entry = *nextEntry
                                 entry.distance--
                                 index = nextIndex
                                 nextIndex = (nextIndex + 1) &amp; m.mask
                                 entry = &amp;m.entries[index]</span>
                         }
                 }
-                <span class="cov8" title="1">dist++
+                <span class="cov0" title="0">dist++
                 index = (index + 1) &amp; m.mask</span>
         }
 }

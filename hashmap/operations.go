@@ -1,5 +1,7 @@
 package fastmap
 
+import "fmt"
+
 // Clear removes all elements from the HashMap
 // Example:
 //
@@ -60,16 +62,23 @@ func (h *HashMap[K, V]) Values() []V {
 	return values
 }
 
-// ForEach executes a callback function for each key-value pair
+// ForEach executes a callback function for each key-value pair and returns an error if the callback fails
 // Example:
 //
-//	hashMap.ForEach(func(key string, value User) {
+//	err := hashMap.ForEach(func(key string, value User) error {
+//	    if value.IsInvalid() {
+//	        return fmt.Errorf("invalid user data for key %s", key)
+//	    }
 //	    fmt.Printf("User %s: %v\n", key, value)
+//	    return nil
 //	})
-func (h *HashMap[K, V]) ForEach(callback ValueCallback[K, V]) {
+func (h *HashMap[K, V]) ForEach(callback func(K, V) error) error {
 	for k, v := range h.data {
-		callback(k, v)
+		if err := callback(k, v); err != nil {
+			return fmt.Errorf("ForEach operation failed at key %v: %w", k, err)
+		}
 	}
+	return nil
 }
 
 // UpdateValue updates an existing value by key, returns false if key doesn't exist
