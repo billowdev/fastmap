@@ -45,9 +45,13 @@ func TestForEach(t *testing.T) {
 	h.Put("two", 2)
 
 	sum := 0
-	h.ForEach(func(k string, v int) {
+	err := h.ForEach(func(k string, v int) error {
 		sum += v
+		return nil
 	})
+	if err != nil {
+		t.Errorf("ForEach failed: %v", err)
+	}
 
 	if sum != 3 {
 		t.Errorf("ForEach sum = %v, want 3", sum)
@@ -96,9 +100,14 @@ func TestFunctionalOperations(t *testing.T) {
 		h.Put("2", "two")
 
 		var keys []string
-		h.ForEach(func(k string, v string) {
+		err := h.ForEach(func(k string, v string) error {
 			keys = append(keys, k)
+			return nil
 		})
+
+		if err != nil {
+			t.Errorf("ForEach failed: %v", err)
+		}
 
 		if len(keys) != 2 {
 			t.Error("ForEach didn't iterate all elements")

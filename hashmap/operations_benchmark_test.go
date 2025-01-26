@@ -64,9 +64,13 @@ func BenchmarkForEach(b *testing.B) {
 	}
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		h.ForEach(func(k string, v int) {
+		err := h.ForEach(func(k string, v int) error {
 			_ = v
+			return nil
 		})
+		if err != nil {
+			b.Fatalf("ForEach failed: %v", err)
+		}
 	}
 }
 

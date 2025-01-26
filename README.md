@@ -41,6 +41,53 @@ size := hashMap.Size()
 success := hashMap.UpdateValue("key", newValue)
 ```
 
+- AppendValues
+```go
+// processSections handles the conversion and organization of section data into specialized
+// hash maps for both body content and layout components. It demonstrates the use of
+// AppendableHashMap for managing collections of PDF components per section.
+//
+// Parameters:
+//   - listSections: Slice of Section objects containing section data and components
+//
+// Example:
+//
+//	sections := []Section{
+//	    {
+//	        ID: "section1",
+//	        PDFListComponents: []models.PDFListComponent{comp1, comp2},
+//	    },
+//	}
+//	processSections(sections)
+func processSections(listSections []Section) {
+    // Initialize specialized hash maps for different data types
+    bodyHashMap := fastmap.NewHashMap[string, domain.ResSection]()
+    layoutHashMap := fastmap.NewAppendableHashMap[string, models.PDFListComponent]()
+    
+    // Process each section and organize its data into appropriate maps
+    for _, section := range listSections {
+        // Store section metadata in body hash map
+        bodyHashMap.Put(section.ID, domain.ResSection{
+            SectionID: section.ID,
+            Section:   section.Section,
+            Priority:  section.Priority,
+            Title:     string(section.Title),
+            Elements:  nil,
+        })
+        
+        // Append PDF components to layout hash map using spread operator equivalent
+        layoutHashMap.AppendValues(section.ID, section.PDFListComponents...)
+    }
+    
+    // Example of thread-safe implementation if needed for concurrent access
+    safeLayoutHashMap := fastmap.NewThreadSafeAppendableHashMap[string, models.PDFListComponent]()
+    for _, section := range listSections {
+        safeLayoutHashMap.AppendValues(section.ID, section.PDFListComponents...)
+    }
+}
+```
+
+
 ### Thread-Safe Operations
 
 ```go
@@ -53,7 +100,7 @@ value, exists := safeMap.Get("key")
 safeMap.Remove("key")
 
 // Safe iteration
-safeMap.ForEach(func(key string, value YourType) {
+safeMap.ForEach(func(key string, value YourType) error {
     // Process each key-value pair safely
 })
 
@@ -150,9 +197,10 @@ func (s *UserSystem) UpdateUserStatus(id string, active bool) bool {
 }
 
 func (s *UserSystem) ProcessUsers() {
-    s.users.ForEach(func(id string, user User) {
+    s.users.ForEach(func(id string, user User) error {
         // Safe concurrent processing
         log.Printf("Processing user: %s", id)
+        return nil
     })
 }
 
@@ -177,6 +225,148 @@ func main() {
     }()
 }
 ```
+
+- Append Values
+```go
+package main
+
+import (
+    "log"
+    "sync"
+    "time"
+
+    "github.com/billowdev/fastmap/hashmap"
+)
+
+// PDFProcessor represents a system that processes PDF components concurrently
+type PDFProcessor struct {
+    layoutMap *fastmap.ThreadSafeAppendableHashMap[string, PDFComponent]
+    wg        sync.WaitGroup
+}
+
+type PDFComponent struct {
+    ID        string
+    Content   string
+    Timestamp time.Time
+}
+
+// NewPDFProcessor initializes a new PDF processor with thread-safe storage
+func NewPDFProcessor() *PDFProcessor {
+    return &PDFProcessor{
+        layoutMap: fastmap.NewThreadSafeAppendableHashMap[string, PDFComponent](),
+    }
+}
+
+// ProcessSection handles concurrent processing of PDF components for a section
+func (p *PDFProcessor) ProcessSection(sectionID string, components []PDFComponent) {
+    batchSize := 5
+    for i := 0; i < len(components); i += batchSize {
+        end := i + batchSize
+        if end > len(components) {
+            end = len(components)
+        }
+
+        batch := components[i:end]
+        p.wg.Add(1)
+        go p.processBatch(sectionID, batch)
+    }
+}
+
+// processBatch handles a batch of components concurrently
+func (p *PDFProcessor) processBatch(sectionID string, components []PDFComponent) {
+    defer p.wg.Done()
+
+    // Simulate processing time for each component
+    for _, component := range components {
+        // Simulate some processing work
+        time.Sleep(100 * time.Millisecond)
+        
+        // Safely append the processed component
+        p.layoutMap.AppendValues(sectionID, component)
+        log.Printf("Processed component %s for section %s", component.ID, sectionID)
+    }
+}
+
+// GetProcessedComponents safely retrieves all components for a section
+func (p *PDFProcessor) GetProcessedComponents(sectionID string) []PDFComponent {
+    components, exists := p.layoutMap.Get(sectionID)
+    if !exists {
+        return []PDFComponent{}
+    }
+    return components
+}
+
+// WaitForCompletion waits for all processing to complete
+func (p *PDFProcessor) WaitForCompletion() {
+    p.wg.Wait()
+}
+
+// Usage example
+func main() {
+    processor := NewPDFProcessor()
+
+    // Simulate incoming PDF components for multiple sections
+    sections := map[string][]PDFComponent{
+        "section1": generateComponents("section1", 15),
+        "section2": generateComponents("section2", 10),
+        "section3": generateComponents("section3", 20),
+    }
+
+    // Process sections concurrently
+    startTime := time.Now()
+    for sectionID, components := range sections {
+        processor.ProcessSection(sectionID, components)
+    }
+
+    // Wait for all processing to complete
+    processor.WaitForCompletion()
+    log.Printf("Processing completed in %v", time.Since(startTime))
+
+    // Verify results
+    for sectionID := range sections {
+        processed := processor.GetProcessedComponents(sectionID)
+        log.Printf("Section %s has %d processed components", sectionID, len(processed))
+    }
+}
+
+// generateComponents creates test PDF components
+func generateComponents(sectionID string, count int) []PDFComponent {
+    components := make([]PDFComponent, count)
+    for i := 0; i < count; i++ {
+        components[i] = PDFComponent{
+            ID:        fmt.Sprintf("%s-comp%d", sectionID, i),
+            Content:   fmt.Sprintf("Content %d", i),
+            Timestamp: time.Now(),
+        }
+    }
+    return components
+}
+
+// Example of error handling and recovery
+func (p *PDFProcessor) ProcessSectionWithRecovery(sectionID string, components []PDFComponent) error {
+    errorChan := make(chan error, 1)
+    
+    go func() {
+        defer func() {
+            if r := recover(); r != nil {
+                errorChan <- fmt.Errorf("processing panic: %v", r)
+            }
+            close(errorChan)
+        }()
+
+        p.ProcessSection(sectionID, components)
+    }()
+
+    // Wait for completion or error
+    p.wg.Wait()
+    if err := <-errorChan; err != nil {
+        return fmt.Errorf("section %s processing failed: %w", sectionID, err)
+    }
+
+    return nil
+}
+```
+
 ### Config Field Processing
 
 The fastmap package provides robust field configuration processing capabilities for handling dynamic data transformations. This feature is particularly useful when dealing with structured data that needs type-safe conversion and validation.
