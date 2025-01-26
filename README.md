@@ -32,16 +32,16 @@ Current Feature Implementation Status:
 - Chainable operations
 - Performance benchmarks
 
-Planned Future Enhancements:
-❌ RobinHood HashMap Implementation
-❌ Binary Search Tree Implementation
-❌ Struct-to-Struct Conversion
-❌ Case Conversion Utilities
-❌ Additional Data Structure Support
-❌ Extended Utility Functions
-❌ Advanced Type Conversion Tools
-❌ Deep Copy Functionality
-
+<!-- Planned Future Enhancements:
+	- RobinHood HashMap Implementation
+	- Binary Search Tree Implementation
+	- Struct-to-Struct Conversion
+	- Case Conversion Utilities
+	- Additional Data Structure Support
+	- Extended Utility Functions
+	- Advanced Type Conversion Tools
+	- Deep Copy Functionality -->
+ 
 The current version focuses on providing a robust and efficient HashMap implementation. Future releases will expand the package's capabilities to include additional data structures and utility functions.
 
 ## Installation
