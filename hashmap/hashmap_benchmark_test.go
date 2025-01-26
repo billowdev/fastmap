@@ -3,7 +3,7 @@ package fastmap_test
 import (
 	"testing"
 
-	"github.com/billowdev/fastmap"
+	fastmap "github.com/billowdev/fastmap/hashmap"
 )
 
 func BenchmarkHashMapPut(b *testing.B) {

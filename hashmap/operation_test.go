@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/billowdev/fastmap"
+	fastmap "github.com/billowdev/fastmap/hashmap"
 )
 
 func TestClear(t *testing.T) {

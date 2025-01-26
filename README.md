@@ -178,6 +178,29 @@ func main() {
 }
 ```
 
+### Other
+```go
+hashMap := fastmap.NewHashMap[string, string]()
+
+configs := map[string]fastmap.FieldConfig[string]{
+    "minimum_polarisation": {
+        Handler: func(m map[string]interface{}) *string {
+            return utils.ToPtr(utils.GetStringValueFromMap(m, "minimum_polarisation"))
+        },
+    },
+}
+
+hashMap.ProcessFieldConfigs(configs, productSpecifications, func(key string, value string, index int) {
+    // Handle processed field
+    element := models.DocumentFieldValue{
+        FieldID:   key,
+        Value:     &value,
+        VersionID: versionID,
+    }
+    bulkCreateValue = append(bulkCreateValue, element)
+})
+```
+
 ## Migration Guide
 
 ### Traditional Map vs HashMap

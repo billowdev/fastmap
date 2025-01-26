@@ -1,6 +1,6 @@
 package main
 import (
-	fastmap "github.com/billowdev/fastmap"
+	fastmap "github.com/billowdev/fastmap/core"
 )
 func main() {
 	// Example usage

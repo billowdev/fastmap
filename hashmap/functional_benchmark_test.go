@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/billowdev/fastmap"
+	fastmap "github.com/billowdev/fastmap/hashmap"
 )
 
 func BenchmarkHashMapFilter(b *testing.B) {
