@@ -44,6 +44,21 @@ Current Feature Implementation Status:
  
 The current version focuses on providing a robust and efficient HashMap implementation. Future releases will expand the package's capabilities to include additional data structures and utility functions.
 
+
+<!-- MARKDOWN LINKS & IMAGES -->
+<!-- https://www.markdownguide.org/basic-syntax/#reference-style-links -->
+[contributors-shield]: https://img.shields.io/github/contributors/billowdev/fastmap.svg?style=for-the-badge
+[contributors-url]: https://github.com/billowdev/fastmap/graphs/contributors
+[forks-shield]: https://img.shields.io/github/forks/billowdev/fastmap.svg?style=for-the-badge
+[forks-url]: https://github.com/billowdev/fastmap/network/members
+[stars-shield]: https://img.shields.io/github/stars/billowdev/fastmap.svg?style=for-the-badge
+[stars-url]: https://github.com/billowdev/fastmap/stargazers
+[issues-shield]: https://img.shields.io/github/issues/billowdev/fastmap.svg?style=for-the-badge
+[issues-url]: https://github.com/billowdev/fastmap/issues
+[license-shield]: https://img.shields.io/github/license/billowdev/fastmap.svg?style=for-the-badge
+[license-url]: https://github.com/billowdev/fastmap/blob/main/LICENSE
+
+
 ## Installation
 
 ```bash
@@ -902,6 +917,12 @@ safeMap.Put(key, value)
 3. Commit your changes
 4. Push to the branch
 5. Create a Pull Request
+
+### Top contributors:
+
+<a href="https://github.com/billowdev/fastmap/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=billowdev/fastmap" alt="contrib.rocks image" />
+</a>
 
 ## License
 

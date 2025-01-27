@@ -1,3 +1,46 @@
+# FastMap v1.2.0 Release Notes
+
+## New Features
+
+### MultiKeyHashMap
+- Added `MultiKeyHashMap` with support for multiple keys (aliases) per value
+- Primary key and alias management system
+- Cascading deletion capabilities
+- O(1) lookup performance for primary keys
+
+### ThreadSafeMultiKeyHashMap
+- Thread-safe implementation of `MultiKeyHashMap`
+- Read-write mutex protection for concurrent operations
+- Safe alias management in multi-threaded environments
+- Zero-allocation value lookups
+
+## Core Features
+- Primary key and alias relationship management
+- Efficient key lookup and retrieval
+- Cascading and targeted removal options
+- Full generic type support
+- Comprehensive test coverage
+
+## Breaking Changes
+None
+
+## Bug Fixes
+None (initial release of feature)
+
+## Performance Improvements
+- Optimized alias lookups
+- Efficient memory management for alias storage
+- Minimal mutex contention in thread-safe operations
+
+## Documentation
+- Added examples for both `MultiKeyHashMap` and `ThreadSafeMultiKeyHashMap`
+- Updated README with alias management patterns
+- Added benchmark results for key operations
+
+## Dependencies
+No new dependencies added
+
+
 # FastMap v1.1.0 Release Notes
 
 We are pleased to announce the release of FastMap v1.1.0, introducing two major enhancements that improve the library's functionality and error handling capabilities.
