@@ -59,7 +59,7 @@
 				
 				<option value="file1">github.com/billowdev/fastmap/hashmap/appendable_threadsafe.go (8.3%)</option>
 				
-				<option value="file2">github.com/billowdev/fastmap/hashmap/combination.go (98.0%)</option>
+				<option value="file2">github.com/billowdev/fastmap/hashmap/combination.go (92.4%)</option>
 				
 				<option value="file3">github.com/billowdev/fastmap/hashmap/config_operation_threadsafe.go (100.0%)</option>
 				
@@ -85,7 +85,7 @@
 				
 				<option value="file14">github.com/billowdev/fastmap/hashmap/operations.go (95.5%)</option>
 				
-				<option value="file15">github.com/billowdev/fastmap/robinhood/robinhood.go (93.2%)</option>
+				<option value="file15">github.com/billowdev/fastmap/robinhood/robinhood.go (90.5%)</option>
 				
 				<option value="file16">github.com/billowdev/fastmap/sample/main.go (0.0%)</option>
 				
@@ -573,7 +573,7 @@ func (m *ComboKeyHashMap[K, V]) generateKeyString(keys []K) string <span class="
 
 // Put associates a value with a combination of keys
 func (m *ComboKeyHashMap[K, V]) Put(keys []K, value V) <span class="cov8" title="1">{
-        if len(keys) == 0 </span><span class="cov0" title="0">{
+        if len(keys) == 0 </span><span class="cov8" title="1">{
                 return
         }</span>
 
@@ -596,44 +596,37 @@ func (m *ComboKeyHashMap[K, V]) Get(keys []K) (V, bool) <span class="cov8" title
         return val, exists
 }</span>
 
-// GetByKeys retrieves all values where all provided keys are part of the key group
-func (m *ComboKeyHashMap[K, V]) GetByKeys(keys []K) []V <span class="cov8" title="1">{
+// GetByKeys retrieves a value where provided keys are part of the key group
+func (m *ComboKeyHashMap[K, V]) GetByKeys(keys []K) (V, bool) <span class="cov8" title="1">{
         if len(keys) == 0 </span><span class="cov8" title="1">{
-                return []V{}
+                var zero V
+                return zero, false
         }</span>
 
-        // Track unique values using a map to avoid duplicates
-        <span class="cov8" title="1">valueMap := make(map[string]V)
+        // Check first key's groups
+        <span class="cov8" title="1">firstKey := keys[0]
+        groups := m.keyGroups[firstKey]
 
-        // Check each key's groups
-        for _, key := range keys </span><span class="cov8" title="1">{
-                groups := m.keyGroups[key]
-                for _, group := range groups </span><span class="cov8" title="1">{
-                        // Check if all provided keys are in this group
-                        allKeysFound := true
-                        for _, searchKey := range keys </span><span class="cov8" title="1">{
-                                if !contains(group, searchKey) </span><span class="cov8" title="1">{
-                                        allKeysFound = false
-                                        break</span>
-                                }
+        for _, group := range groups </span><span class="cov8" title="1">{
+                // Check if all provided keys are in this group
+                allKeysFound := true
+                for _, searchKey := range keys </span><span class="cov8" title="1">{
+                        if !contains(group, searchKey) </span><span class="cov0" title="0">{
+                                allKeysFound = false
+                                break</span>
                         }
+                }
 
-                        <span class="cov8" title="1">if allKeysFound </span><span class="cov8" title="1">{
-                                keyString := m.generateKeyString(group)
-                                if val, exists := m.data[keyString]; exists </span><span class="cov8" title="1">{
-                                        valueMap[keyString] = val
-                                }</span>
-                        }
+                <span class="cov8" title="1">if allKeysFound </span><span class="cov8" title="1">{
+                        keyString := m.generateKeyString(group)
+                        if val, exists := m.data[keyString]; exists </span><span class="cov8" title="1">{
+                                return val, true
+                        }</span>
                 }
         }
 
-        // Convert map to slice
-        <span class="cov8" title="1">result := make([]V, 0, len(valueMap))
-        for _, v := range valueMap </span><span class="cov8" title="1">{
-                result = append(result, v)
-        }</span>
-
-        <span class="cov8" title="1">return result</span>
+        <span class="cov8" title="1">var zero V
+        return zero, false</span>
 }
 
 // Helper functions
@@ -644,7 +637,7 @@ func contains[K comparable](slice []K, item K) bool <span class="cov8" title="1"
                         return true
                 }</span>
         }
-        <span class="cov8" title="1">return false</span>
+        <span class="cov0" title="0">return false</span>
 }
 
 func sortSlice[K comparable](slice []K) <span class="cov8" title="1">{
@@ -659,6 +652,44 @@ func sortSlice[K comparable](slice []K) <span class="cov8" title="1">{
 }
 
 type KeyGroup[K comparable] []K
+
+// GetByExactKeys retrieves a value where provided keys exactly match a key group
+func (m *ComboKeyHashMap[K, V]) GetByExactKeys(keys []K) (V, bool) <span class="cov8" title="1">{
+        if len(keys) == 0 </span><span class="cov8" title="1">{
+                var zero V
+                return zero, false
+        }</span>
+
+        // Check first key's groups
+        <span class="cov8" title="1">firstKey := keys[0]
+        groups := m.keyGroups[firstKey]
+
+        for _, group := range groups </span><span class="cov8" title="1">{
+                // First check if lengths match - all keys must be present
+                if len(group) != len(keys) </span><span class="cov8" title="1">{
+                        continue</span>
+                }
+
+                // Check if all provided keys are in this group
+                <span class="cov8" title="1">allKeysFound := true
+                for _, searchKey := range keys </span><span class="cov8" title="1">{
+                        if !contains(group, searchKey) </span><span class="cov0" title="0">{
+                                allKeysFound = false
+                                break</span>
+                        }
+                }
+
+                <span class="cov8" title="1">if allKeysFound </span><span class="cov8" title="1">{
+                        keyString := m.generateKeyString(group)
+                        if val, exists := m.data[keyString]; exists </span><span class="cov8" title="1">{
+                                return val, true
+                        }</span>
+                }
+        }
+
+        <span class="cov8" title="1">var zero V
+        return zero, false</span>
+}
 </pre>
 		
 		<pre class="file" id="file3" style="display: none">package fastmap
@@ -1964,7 +1995,7 @@ func (m *RobinHoodMap[K, V]) Remove(key K) bool <span class="cov8" title="1">{
                                 entry = &amp;m.entries[index]</span>
                         }
                 }
-                <span class="cov8" title="1">dist++
+                <span class="cov0" title="0">dist++
                 index = (index + 1) &amp; m.mask</span>
         }
 }
