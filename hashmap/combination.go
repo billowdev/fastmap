@@ -58,44 +58,37 @@ func (m *ComboKeyHashMap[K, V]) Get(keys []K) (V, bool) {
 	return val, exists
 }
 
-// GetByKeys retrieves all values where all provided keys are part of the key group
-func (m *ComboKeyHashMap[K, V]) GetByKeys(keys []K) []V {
+// GetByKeys retrieves a value where provided keys are part of the key group
+func (m *ComboKeyHashMap[K, V]) GetByKeys(keys []K) (V, bool) {
 	if len(keys) == 0 {
-		return []V{}
+		var zero V
+		return zero, false
 	}
 
-	// Track unique values using a map to avoid duplicates
-	valueMap := make(map[string]V)
+	// Check first key's groups
+	firstKey := keys[0]
+	groups := m.keyGroups[firstKey]
 
-	// Check each key's groups
-	for _, key := range keys {
-		groups := m.keyGroups[key]
-		for _, group := range groups {
-			// Check if all provided keys are in this group
-			allKeysFound := true
-			for _, searchKey := range keys {
-				if !contains(group, searchKey) {
-					allKeysFound = false
-					break
-				}
+	for _, group := range groups {
+		// Check if all provided keys are in this group
+		allKeysFound := true
+		for _, searchKey := range keys {
+			if !contains(group, searchKey) {
+				allKeysFound = false
+				break
 			}
+		}
 
-			if allKeysFound {
-				keyString := m.generateKeyString(group)
-				if val, exists := m.data[keyString]; exists {
-					valueMap[keyString] = val
-				}
+		if allKeysFound {
+			keyString := m.generateKeyString(group)
+			if val, exists := m.data[keyString]; exists {
+				return val, true
 			}
 		}
 	}
 
-	// Convert map to slice
-	result := make([]V, 0, len(valueMap))
-	for _, v := range valueMap {
-		result = append(result, v)
-	}
-
-	return result
+	var zero V
+	return zero, false
 }
 
 // Helper functions
@@ -121,3 +114,41 @@ func sortSlice[K comparable](slice []K) {
 }
 
 type KeyGroup[K comparable] []K
+
+// GetByExactKeys retrieves a value where provided keys exactly match a key group
+func (m *ComboKeyHashMap[K, V]) GetByExactKeys(keys []K) (V, bool) {
+	if len(keys) == 0 {
+		var zero V
+		return zero, false
+	}
+
+	// Check first key's groups
+	firstKey := keys[0]
+	groups := m.keyGroups[firstKey]
+
+	for _, group := range groups {
+		// First check if lengths match - all keys must be present
+		if len(group) != len(keys) {
+			continue
+		}
+
+		// Check if all provided keys are in this group
+		allKeysFound := true
+		for _, searchKey := range keys {
+			if !contains(group, searchKey) {
+				allKeysFound = false
+				break
+			}
+		}
+
+		if allKeysFound {
+			keyString := m.generateKeyString(group)
+			if val, exists := m.data[keyString]; exists {
+				return val, true
+			}
+		}
+	}
+
+	var zero V
+	return zero, false
+}
