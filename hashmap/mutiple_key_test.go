@@ -1,7 +1,9 @@
 package fastmap_test
 
 import (
+	"fmt"
 	"math"
+	"reflect"
 	"testing"
 
 	fastmap "github.com/billowdev/fastmap/hashmap"
@@ -429,4 +431,265 @@ func TestMultiKeyHashMap_KeyTypeEdgeCases(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAppendableMultiKeyHashMap_GetValuesByKeys(t *testing.T) {
+	m := fastmap.NewAppendableMultiKeyHashMap[string, int]()
+
+	// Setup test data
+	m.AppendValuesWithKeys([]string{"key1", "alias1"}, 1, 2, 3)
+	m.AppendValuesWithKeys([]string{"key2", "alias2"}, 4, 5, 6)
+
+	// Test GetValuesByKeys with existing keys
+	keys := []string{"key1", "alias1", "key2"}
+	result := m.GetValuesByKeys(keys)
+
+	// Verify results
+	expected := map[string][]int{
+		"key1":   {1, 2, 3},
+		"alias1": {1, 2, 3},
+		"key2":   {4, 5, 6},
+	}
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("GetValuesByKeys = %v, want %v", result, expected)
+	}
+
+	// Test with non-existent keys
+	nonExistentKeys := []string{"key1", "nonexistent"}
+	result = m.GetValuesByKeys(nonExistentKeys)
+	expected = map[string][]int{
+		"key1": {1, 2, 3},
+	}
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("GetValuesByKeys with non-existent key = %v, want %v", result, expected)
+	}
+}
+
+func TestAppendableMultiKeyHashMap_GetValuesByKeysWithPrimary(t *testing.T) {
+	m := fastmap.NewAppendableMultiKeyHashMap[string, int]()
+
+	// Setup test data
+	m.AppendValuesWithKeys([]string{"key1", "alias1"}, 1, 2, 3)
+	m.AppendValuesWithKeys([]string{"key2", "alias2"}, 4, 5, 6)
+
+	// Test GetValuesByKeysWithPrimary using mix of primary keys and aliases
+	keys := []string{"alias1", "alias2", "key2"}
+	result := m.GetValuesByKeysWithPrimary(keys)
+
+	// Verify results - all values should be mapped to primary keys
+	expected := map[string][]int{
+		"key1": {1, 2, 3},
+		"key2": {4, 5, 6},
+	}
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("GetValuesByKeysWithPrimary = %v, want %v", result, expected)
+	}
+
+	// Test with non-existent keys
+	nonExistentKeys := []string{"key1", "nonexistent"}
+	result = m.GetValuesByKeysWithPrimary(nonExistentKeys)
+	expected = map[string][]int{
+		"key1": {1, 2, 3},
+	}
+
+	if !reflect.DeepEqual(result, expected) {
+		t.Errorf("GetValuesByKeysWithPrimary with non-existent key = %v, want %v", result, expected)
+	}
+}
+
+func TestAppendableMultiKeyHashMap_GetValuesByKeys_EmptyInput(t *testing.T) {
+	m := fastmap.NewAppendableMultiKeyHashMap[string, int]()
+
+	// Test with empty keys slice
+	result := m.GetValuesByKeys([]string{})
+	if len(result) != 0 {
+		t.Errorf("GetValuesByKeys with empty input should return empty map, got %v", result)
+	}
+
+	// Test with nil keys slice
+	var nilKeys []string
+	result = m.GetValuesByKeys(nilKeys)
+	if len(result) != 0 {
+		t.Errorf("GetValuesByKeys with nil input should return empty map, got %v", result)
+	}
+}
+
+func TestAppendableMultiKeyHashMap_GetValuesByKeysWithPrimary_EmptyInput(t *testing.T) {
+	m := fastmap.NewAppendableMultiKeyHashMap[string, int]()
+
+	// Test with empty keys slice
+	result := m.GetValuesByKeysWithPrimary([]string{})
+	if len(result) != 0 {
+		t.Errorf("GetValuesByKeysWithPrimary with empty input should return empty map, got %v", result)
+	}
+
+	// Test with nil keys slice
+	var nilKeys []string
+	result = m.GetValuesByKeysWithPrimary(nilKeys)
+	if len(result) != 0 {
+		t.Errorf("GetValuesByKeysWithPrimary with nil input should return empty map, got %v", result)
+	}
+}
+func TestAppendableMultiKeyHashMap_GetValuesByKeys_EdgeCases(t *testing.T) {
+	t.Run("duplicate keys in input", func(t *testing.T) {
+		m := fastmap.NewAppendableMultiKeyHashMap[string, int]()
+		m.AppendValuesWithKeys([]string{"key1", "alias1"}, 1, 2, 3)
+
+		// Test with duplicate keys in input
+		result := m.GetValuesByKeys([]string{"key1", "key1", "alias1", "alias1"})
+		expected := map[string][]int{
+			"key1":   {1, 2, 3},
+			"alias1": {1, 2, 3},
+		}
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("GetValuesByKeys with duplicate keys = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("cyclic references", func(t *testing.T) {
+		m := fastmap.NewAppendableMultiKeyHashMap[string, int]()
+
+		// Create a situation with potential cyclic references
+		m.AppendValuesWithKeys([]string{"key1", "alias1"}, 1, 2)
+		m.AppendValuesWithKeys([]string{"key2", "alias1"}, 3, 4) // alias1 now points to key2
+
+		result := m.GetValuesByKeys([]string{"key1", "alias1", "key2"})
+		if len(result) != 3 {
+			t.Errorf("Expected 3 entries in result, got %d", len(result))
+		}
+	})
+
+	t.Run("zero value keys", func(t *testing.T) {
+		m := fastmap.NewAppendableMultiKeyHashMap[int, string]()
+		m.AppendValuesWithKeys([]int{0, 1}, "zero", "one")
+
+		result := m.GetValuesByKeys([]int{0, 1, 2})
+		expected := map[int][]string{
+			0: {"zero", "one"},
+			1: {"zero", "one"},
+		}
+
+		if !reflect.DeepEqual(result, expected) {
+			t.Errorf("GetValuesByKeys with zero value key = %v, want %v", result, expected)
+		}
+	})
+
+	t.Run("nil values in slice", func(t *testing.T) {
+		m := fastmap.NewAppendableMultiKeyHashMap[string, *int]()
+		val1 := 1
+		var nilVal *int
+		m.AppendValuesWithKeys([]string{"key1"}, &val1, nilVal, nil)
+
+		result := m.GetValuesByKeys([]string{"key1"})
+		if len(result["key1"]) != 3 {
+			t.Errorf("Expected slice with 3 elements (including nils), got %d", len(result["key1"]))
+		}
+	})
+
+	t.Run("large number of aliases", func(t *testing.T) {
+		m := fastmap.NewAppendableMultiKeyHashMap[string, int]()
+		aliases := make([]string, 1000)
+		for i := 0; i < 1000; i++ {
+			aliases[i] = fmt.Sprintf("alias%d", i)
+		}
+		aliases = append([]string{"primaryKey"}, aliases...)
+
+		m.AppendValuesWithKeys(aliases, 1, 2, 3)
+
+		// Try to get values using various combinations of aliases
+		result := m.GetValuesByKeys([]string{
+			"primaryKey",
+			"alias0",
+			"alias499",
+			"alias999",
+		})
+
+		for _, values := range result {
+			if !reflect.DeepEqual(values, []int{1, 2, 3}) {
+				t.Errorf("Incorrect values for large number of aliases: %v", values)
+			}
+		}
+	})
+
+	t.Run("overwritten aliases", func(t *testing.T) {
+		m := fastmap.NewAppendableMultiKeyHashMap[string, int]()
+
+		// First assignment
+		m.AppendValuesWithKeys([]string{"key1", "shared"}, 1, 2)
+
+		// Second assignment with shared alias
+		m.AppendValuesWithKeys([]string{"key2", "shared"}, 3, 4)
+
+		result := m.GetValuesByKeys([]string{"key1", "key2", "shared"})
+		// Verify that "shared" points to the latest assignment
+		if !reflect.DeepEqual(result["shared"], []int{3, 4}) {
+			t.Errorf("Overwritten alias should point to latest values, got %v", result["shared"])
+		}
+	})
+
+	t.Run("mixed key types", func(t *testing.T) {
+		type CustomKey struct {
+			id   int
+			name string
+		}
+
+		m := fastmap.NewAppendableMultiKeyHashMap[CustomKey, int]()
+		key1 := CustomKey{1, "one"}
+		alias1 := CustomKey{1, "alias"}
+
+		m.AppendValuesWithKeys([]CustomKey{key1, alias1}, 1, 2)
+
+		result := m.GetValuesByKeys([]CustomKey{key1, alias1})
+		if len(result) != 2 {
+			t.Errorf("Expected 2 entries for complex key type, got %d", len(result))
+		}
+	})
+
+	t.Run("concurrent key modification", func(t *testing.T) {
+		m := fastmap.NewAppendableMultiKeyHashMap[string, int]()
+		m.AppendValuesWithKeys([]string{"key1", "alias1"}, 1, 2)
+
+		// Get values while modifying
+		go func() {
+			m.AppendValuesWithKeys([]string{"key1", "alias2"}, 3, 4)
+		}()
+
+		result := m.GetValuesByKeys([]string{"key1", "alias1"})
+		// Verify we got valid data regardless of concurrent modification
+		if len(result) == 0 {
+			t.Error("Got empty result during concurrent modification")
+		}
+	})
+
+	t.Run("empty slices", func(t *testing.T) {
+		m := fastmap.NewAppendableMultiKeyHashMap[string, int]()
+		m.AppendValuesWithKeys([]string{"key1", "alias1"}, []int{}...)
+
+		result := m.GetValuesByKeys([]string{"key1", "alias1"})
+		if len(result) != 2 {
+			t.Error("Should return entries even for empty slices")
+		}
+		for _, values := range result {
+			if len(values) != 0 {
+				t.Error("Expected empty slice values")
+			}
+		}
+	})
+
+	t.Run("removed primary keys", func(t *testing.T) {
+		m := fastmap.NewAppendableMultiKeyHashMap[string, int]()
+		m.AppendValuesWithKeys([]string{"key1", "alias1"}, 1, 2)
+
+		// Remove primary key but try to access via alias
+		m.Remove("key1")
+
+		result := m.GetValuesByKeysWithPrimary([]string{"alias1"})
+		if len(result) != 0 {
+			t.Error("Should not be able to access values through alias after primary key removal")
+		}
+	})
 }
