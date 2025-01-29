@@ -61,3 +61,33 @@ func (m *AppendableMultiKeyHashMap[K, V]) UpdateSlice(key K, newValues []V) bool
 	}
 	return false
 }
+
+// GetValuesByKeys retrieves values associated with an array of keys
+// If a key doesn't exist, it will be skipped in the result
+func (m *AppendableMultiKeyHashMap[K, V]) GetValuesByKeys(keys []K) map[K][]V {
+	result := make(map[K][]V)
+
+	for _, key := range keys {
+		if values, exists := m.GetSlice(key); exists {
+			result[key] = values
+		}
+	}
+
+	return result
+}
+
+// GetValuesByKeysWithPrimary retrieves values associated with an array of keys
+// The returned map uses primary keys instead of the provided aliases
+func (m *AppendableMultiKeyHashMap[K, V]) GetValuesByKeysWithPrimary(keys []K) map[K][]V {
+	result := make(map[K][]V)
+
+	for _, key := range keys {
+		if primaryKey, exists := m.GetPrimaryKey(key); exists {
+			if values, valExists := m.GetSlice(primaryKey); valExists {
+				result[primaryKey] = values
+			}
+		}
+	}
+
+	return result
+}

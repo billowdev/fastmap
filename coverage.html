@@ -55,9 +55,9 @@
 			<div id="nav">
 				<select id="files">
 				
-				<option value="file0">github.com/billowdev/fastmap/hashmap/appendable.go (100.0%)</option>
+				<option value="file0">github.com/billowdev/fastmap/hashmap/appendable.go (6.9%)</option>
 				
-				<option value="file1">github.com/billowdev/fastmap/hashmap/appendable_threadsafe.go (100.0%)</option>
+				<option value="file1">github.com/billowdev/fastmap/hashmap/appendable_threadsafe.go (8.3%)</option>
 				
 				<option value="file2">github.com/billowdev/fastmap/hashmap/config_operation_threadsafe.go (100.0%)</option>
 				
@@ -73,17 +73,19 @@
 				
 				<option value="file8">github.com/billowdev/fastmap/hashmap/functional_threadsafe.go (100.0%)</option>
 				
-				<option value="file9">github.com/billowdev/fastmap/hashmap/multiple_key_threadsafe.go (89.3%)</option>
+				<option value="file9">github.com/billowdev/fastmap/hashmap/multiple_appendable.go (93.8%)</option>
 				
-				<option value="file10">github.com/billowdev/fastmap/hashmap/mutiple_key.go (88.5%)</option>
+				<option value="file10">github.com/billowdev/fastmap/hashmap/multiple_key_threadsafe.go (89.3%)</option>
 				
-				<option value="file11">github.com/billowdev/fastmap/hashmap/operation_threadsafe.go (100.0%)</option>
+				<option value="file11">github.com/billowdev/fastmap/hashmap/mutiple_key.go (93.3%)</option>
 				
-				<option value="file12">github.com/billowdev/fastmap/hashmap/operations.go (95.5%)</option>
+				<option value="file12">github.com/billowdev/fastmap/hashmap/operation_threadsafe.go (100.0%)</option>
 				
-				<option value="file13">github.com/billowdev/fastmap/robinhood/robinhood.go (90.5%)</option>
+				<option value="file13">github.com/billowdev/fastmap/hashmap/operations.go (95.5%)</option>
 				
-				<option value="file14">github.com/billowdev/fastmap/sample/main.go (0.0%)</option>
+				<option value="file14">github.com/billowdev/fastmap/robinhood/robinhood.go (90.5%)</option>
+				
+				<option value="file15">github.com/billowdev/fastmap/sample/main.go (0.0%)</option>
 				
 				</select>
 			</div>
@@ -98,6 +100,8 @@
 		<div id="content">
 		
 		<pre class="file" id="file0" style="display: none">package fastmap
+
+import "sort"
 
 // AppendableHashMap extends HashMap to provide specialized functionality for handling slice operations.
 // It maintains type safety through generics while providing convenient methods for appending values
@@ -145,9 +149,169 @@ func (h *AppendableHashMap[K, V]) AppendValues(key K, values ...V) <span class="
                 h.Put(key, values)
         }</span>
 }
+
+// SortValues sorts the slice stored at the given key using a custom comparison function.
+// Returns true if the key exists and sorting was performed, false otherwise.
+// The less function should return true if a comes before b in the desired order.
+//
+// Parameters:
+//   - key: The key whose values should be sorted
+//   - less: Comparison function that defines the sort order
+//
+// Example:
+//
+//        map.AppendValues("scores", 75, 82, 90, 65)
+//        map.SortValues("scores", func(a, b int) bool { return a &lt; b })
+//        // Result: [65, 75, 82, 90]
+func (h *AppendableHashMap[K, V]) SortValues(key K, less func(a, b V) bool) bool <span class="cov0" title="0">{
+        if values, exists := h.Get(key); exists </span><span class="cov0" title="0">{
+                sort.Slice(values, func(i, j int) bool </span><span class="cov0" title="0">{
+                        return less(values[i], values[j])
+                }</span>)
+                <span class="cov0" title="0">h.Put(key, values)
+                return true</span>
+        }
+        <span class="cov0" title="0">return false</span>
+}
+
+// SortValuesByField sorts values using a field extractor function that retrieves
+// comparable values (int, string, float64) from the slice elements.
+// Returns true if sorting was performed, false if key doesn't exist.
+//
+// Example:
+//
+//        type User struct {
+//            Name string
+//            Age  int
+//        }
+//        map.AppendValues("users", User{"Bob", 30}, User{"Alice", 25})
+//        map.SortValuesByField("users", func(u User) any { return u.Name })
+//        // Result: [{Alice 25} {Bob 30}]
+func (h *AppendableHashMap[K, V]) SortValuesByField(key K, extractor func(V) any) bool <span class="cov0" title="0">{
+        if values, exists := h.Get(key); exists </span><span class="cov0" title="0">{
+                sort.Slice(values, func(i, j int) bool </span><span class="cov0" title="0">{
+                        a := extractor(values[i])
+                        b := extractor(values[j])
+                        switch v := a.(type) </span>{
+                        case int:<span class="cov0" title="0">
+                                return v &lt; b.(int)</span>
+                        case string:<span class="cov0" title="0">
+                                return v &lt; b.(string)</span>
+                        case float64:<span class="cov0" title="0">
+                                return v &lt; b.(float64)</span>
+                        default:<span class="cov0" title="0">
+                                return false</span>
+                        }
+                })
+                <span class="cov0" title="0">h.Put(key, values)
+                return true</span>
+        }
+        <span class="cov0" title="0">return false</span>
+}
+
+// ReverseValues reverses the order of values stored at the given key.
+// Returns true if reversal was performed, false if key doesn't exist.
+//
+// Example:
+//
+//        map.AppendValues("items", "a", "b", "c")
+//        map.ReverseValues("items")
+//        // Result: ["c", "b", "a"]
+func (h *AppendableHashMap[K, V]) ReverseValues(key K) bool <span class="cov0" title="0">{
+        if values, exists := h.Get(key); exists </span><span class="cov0" title="0">{
+                for i, j := 0, len(values)-1; i &lt; j; i, j = i+1, j-1 </span><span class="cov0" title="0">{
+                        values[i], values[j] = values[j], values[i]
+                }</span>
+                <span class="cov0" title="0">h.Put(key, values)
+                return true</span>
+        }
+        <span class="cov0" title="0">return false</span>
+}
+
+// FilterValues applies a predicate function to filter values at the given key.
+// Keeps only values where predicate returns true.
+// Returns true if filtering was performed, false if key doesn't exist.
+//
+// Example:
+//
+//        map.AppendValues("numbers", 1, 2, 3, 4, 5)
+//        map.FilterValues("numbers", func(n int) bool { return n%2 == 0 })
+//        // Result: [2, 4]
+func (h *AppendableHashMap[K, V]) FilterValues(key K, predicate func(V) bool) bool <span class="cov0" title="0">{
+        if values, exists := h.Get(key); exists </span><span class="cov0" title="0">{
+                filtered := make([]V, 0, len(values))
+                for _, v := range values </span><span class="cov0" title="0">{
+                        if predicate(v) </span><span class="cov0" title="0">{
+                                filtered = append(filtered, v)
+                        }</span>
+                }
+                <span class="cov0" title="0">h.Put(key, filtered)
+                return true</span>
+        }
+        <span class="cov0" title="0">return false</span>
+}
+
+// TransformValues applies a transformation function to all values at the given key.
+// The transform function maps each value to a new value of the same type.
+// Returns true if transformation was performed, false if key doesn't exist.
+//
+// Example:
+//
+//        map.AppendValues("numbers", 1, 2, 3)
+//        map.TransformValues("numbers", func(n int) int { return n * 2 })
+//        // Result: [2, 4, 6]
+func (h *AppendableHashMap[K, V]) TransformValues(key K, transform func(V) V) bool <span class="cov0" title="0">{
+        if values, exists := h.Get(key); exists </span><span class="cov0" title="0">{
+                for i, v := range values </span><span class="cov0" title="0">{
+                        values[i] = transform(v)
+                }</span>
+                <span class="cov0" title="0">h.Put(key, values)
+                return true</span>
+        }
+        <span class="cov0" title="0">return false</span>
+}
+
+// RemoveDuplicates removes duplicate values at the given key while maintaining order.
+// Uses the provided equals function to determine value equality.
+// Returns true if deduplication was performed, false if key doesn't exist.
+//
+// Example:
+//
+//        map.AppendValues("tags", "go", "java", "go", "python", "java")
+//        map.RemoveDuplicates("tags", func(a, b string) bool { return a == b })
+//        // Result: ["go", "java", "python"]
+func (h *AppendableHashMap[K, V]) RemoveDuplicates(key K, equals func(a, b V) bool) bool <span class="cov0" title="0">{
+        if values, exists := h.Get(key); exists </span><span class="cov0" title="0">{
+                if len(values) &lt;= 1 </span><span class="cov0" title="0">{
+                        return true
+                }</span>
+
+                <span class="cov0" title="0">unique := make([]V, 0, len(values))
+                unique = append(unique, values[0])
+
+                for i := 1; i &lt; len(values); i++ </span><span class="cov0" title="0">{
+                        isDuplicate := false
+                        for j := 0; j &lt; len(unique); j++ </span><span class="cov0" title="0">{
+                                if equals(values[i], unique[j]) </span><span class="cov0" title="0">{
+                                        isDuplicate = true
+                                        break</span>
+                                }
+                        }
+                        <span class="cov0" title="0">if !isDuplicate </span><span class="cov0" title="0">{
+                                unique = append(unique, values[i])
+                        }</span>
+                }
+
+                <span class="cov0" title="0">h.Put(key, unique)
+                return true</span>
+        }
+        <span class="cov0" title="0">return false</span>
+}
 </pre>
 		
 		<pre class="file" id="file1" style="display: none">package fastmap
+
+import "sort"
 
 // ThreadSafeAppendableHashMap provides thread-safe operations for handling slice values
 // in a concurrent environment. It uses mutex locks to ensure safe access and modification
@@ -200,6 +364,173 @@ func (t *ThreadSafeAppendableHashMap[K, V]) AppendValues(key K, values ...V) <sp
         }</span> else<span class="cov8" title="1"> {
                 t.data.Put(key, values)
         }</span>
+}
+
+// SortValues sorts the slice in a thread-safe manner using the custom comparison function.
+// Returns true if sorting was performed, false if key doesn't exist.
+//
+// Example:
+//
+//        safeMap.AppendValues("scores", 75, 82, 90, 65)
+//        safeMap.SortValues("scores", func(a, b int) bool { return a &lt; b })
+//        // Result: [65, 75, 82, 90]
+func (t *ThreadSafeAppendableHashMap[K, V]) SortValues(key K, less func(a, b V) bool) bool <span class="cov0" title="0">{
+        t.mutex.Lock()
+        defer t.mutex.Unlock()
+
+        if values, exists := t.Get(key); exists </span><span class="cov0" title="0">{
+                sort.Slice(values, func(i, j int) bool </span><span class="cov0" title="0">{
+                        return less(values[i], values[j])
+                }</span>)
+                <span class="cov0" title="0">t.Put(key, values)
+                return true</span>
+        }
+        <span class="cov0" title="0">return false</span>
+}
+
+// SortValuesByField sorts values in a thread-safe manner using a field extractor.
+// Returns true if sorting was performed, false if key doesn't exist.
+//
+// Example:
+//
+//        type User struct {
+//            Name string
+//            Age  int
+//        }
+//        safeMap.AppendValues("users", User{"Bob", 30}, User{"Alice", 25})
+//        safeMap.SortValuesByField("users", func(u User) any { return u.Name })
+//        // Result: [{Alice 25} {Bob 30}]
+func (t *ThreadSafeAppendableHashMap[K, V]) SortValuesByField(key K, extractor func(V) any) bool <span class="cov0" title="0">{
+        t.mutex.Lock()
+        defer t.mutex.Unlock()
+
+        if values, exists := t.Get(key); exists </span><span class="cov0" title="0">{
+                sort.Slice(values, func(i, j int) bool </span><span class="cov0" title="0">{
+                        a := extractor(values[i])
+                        b := extractor(values[j])
+                        switch v := a.(type) </span>{
+                        case int:<span class="cov0" title="0">
+                                return v &lt; b.(int)</span>
+                        case string:<span class="cov0" title="0">
+                                return v &lt; b.(string)</span>
+                        case float64:<span class="cov0" title="0">
+                                return v &lt; b.(float64)</span>
+                        default:<span class="cov0" title="0">
+                                return false</span>
+                        }
+                })
+                <span class="cov0" title="0">t.Put(key, values)
+                return true</span>
+        }
+        <span class="cov0" title="0">return false</span>
+}
+
+// ReverseValues reverses values order in a thread-safe manner.
+// Returns true if reversal was performed, false if key doesn't exist.
+//
+// Example:
+//
+//        safeMap.AppendValues("items", "a", "b", "c")
+//        safeMap.ReverseValues("items")
+//        // Result: ["c", "b", "a"]
+func (t *ThreadSafeAppendableHashMap[K, V]) ReverseValues(key K) bool <span class="cov0" title="0">{
+        t.mutex.Lock()
+        defer t.mutex.Unlock()
+
+        if values, exists := t.Get(key); exists </span><span class="cov0" title="0">{
+                for i, j := 0, len(values)-1; i &lt; j; i, j = i+1, j-1 </span><span class="cov0" title="0">{
+                        values[i], values[j] = values[j], values[i]
+                }</span>
+                <span class="cov0" title="0">t.Put(key, values)
+                return true</span>
+        }
+        <span class="cov0" title="0">return false</span>
+}
+
+// FilterValues filters values in a thread-safe manner using a predicate.
+// Returns true if filtering was performed, false if key doesn't exist.
+//
+// Example:
+//
+//        safeMap.AppendValues("numbers", 1, 2, 3, 4, 5)
+//        safeMap.FilterValues("numbers", func(n int) bool { return n%2 == 0 })
+//        // Result: [2, 4]
+func (t *ThreadSafeAppendableHashMap[K, V]) FilterValues(key K, predicate func(V) bool) bool <span class="cov0" title="0">{
+        t.mutex.Lock()
+        defer t.mutex.Unlock()
+
+        if values, exists := t.Get(key); exists </span><span class="cov0" title="0">{
+                filtered := make([]V, 0, len(values))
+                for _, v := range values </span><span class="cov0" title="0">{
+                        if predicate(v) </span><span class="cov0" title="0">{
+                                filtered = append(filtered, v)
+                        }</span>
+                }
+                <span class="cov0" title="0">t.Put(key, filtered)
+                return true</span>
+        }
+        <span class="cov0" title="0">return false</span>
+}
+
+// TransformValues transforms values in a thread-safe manner.
+// Returns true if transformation was performed, false if key doesn't exist.
+//
+// Example:
+//
+//        safeMap.AppendValues("numbers", 1, 2, 3)
+//        safeMap.TransformValues("numbers", func(n int) int { return n * 2 })
+//        // Result: [2, 4, 6]
+func (t *ThreadSafeAppendableHashMap[K, V]) TransformValues(key K, transform func(V) V) bool <span class="cov0" title="0">{
+        t.mutex.Lock()
+        defer t.mutex.Unlock()
+
+        if values, exists := t.Get(key); exists </span><span class="cov0" title="0">{
+                for i, v := range values </span><span class="cov0" title="0">{
+                        values[i] = transform(v)
+                }</span>
+                <span class="cov0" title="0">t.Put(key, values)
+                return true</span>
+        }
+        <span class="cov0" title="0">return false</span>
+}
+
+// RemoveDuplicates removes duplicates in a thread-safe manner.
+// Returns true if deduplication was performed, false if key doesn't exist.
+//
+// Example:
+//
+//        safeMap.AppendValues("tags", "go", "java", "go", "python", "java")
+//        safeMap.RemoveDuplicates("tags", func(a, b string) bool { return a == b })
+//        // Result: ["go", "java", "python"]
+func (t *ThreadSafeAppendableHashMap[K, V]) RemoveDuplicates(key K, equals func(a, b V) bool) bool <span class="cov0" title="0">{
+        t.mutex.Lock()
+        defer t.mutex.Unlock()
+
+        if values, exists := t.Get(key); exists </span><span class="cov0" title="0">{
+                if len(values) &lt;= 1 </span><span class="cov0" title="0">{
+                        return true
+                }</span>
+
+                <span class="cov0" title="0">unique := make([]V, 0, len(values))
+                unique = append(unique, values[0])
+
+                for i := 1; i &lt; len(values); i++ </span><span class="cov0" title="0">{
+                        isDuplicate := false
+                        for j := 0; j &lt; len(unique); j++ </span><span class="cov0" title="0">{
+                                if equals(values[i], unique[j]) </span><span class="cov0" title="0">{
+                                        isDuplicate = true
+                                        break</span>
+                                }
+                        }
+                        <span class="cov0" title="0">if !isDuplicate </span><span class="cov0" title="0">{
+                                unique = append(unique, values[i])
+                        }</span>
+                }
+
+                <span class="cov0" title="0">t.Put(key, unique)
+                return true</span>
+        }
+        <span class="cov0" title="0">return false</span>
 }
 </pre>
 		
@@ -608,67 +939,213 @@ func FromThreadSafeMap[K comparable, V any](m map[K]V) *ThreadSafeHashMap[K, V] 
 		
 		<pre class="file" id="file9" style="display: none">package fastmap
 
+// AppendableMultiKeyHashMap extends MultiKeyHashMap to support slice operations
+type AppendableMultiKeyHashMap[K comparable, V any] struct {
+        *MultiKeyHashMap[K, []V]
+}
+
+// NewAppendableMultiKeyHashMap creates a new AppendableMultiKeyHashMap instance
+func NewAppendableMultiKeyHashMap[K comparable, V any]() *AppendableMultiKeyHashMap[K, V] <span class="cov8" title="1">{
+        return &amp;AppendableMultiKeyHashMap[K, V]{
+                MultiKeyHashMap: NewMultiKeyHashMap[K, []V](),
+        }
+}</span>
+
+// AppendValues appends values to the slice associated with the primary key or any of its aliases
+func (m *AppendableMultiKeyHashMap[K, V]) AppendValues(key K, values ...V) bool <span class="cov8" title="1">{
+        // Get primary key if it exists
+        primaryKey, exists := m.GetPrimaryKey(key)
+        if !exists </span><span class="cov8" title="1">{
+                return false
+        }</span>
+
+        // Get existing values or create new slice
+        <span class="cov8" title="1">if currentValues, exists := m.Get(primaryKey); exists </span><span class="cov8" title="1">{
+                newValues := append(currentValues, values...)
+                m.Put(m.GetAllKeys(primaryKey), newValues)
+        }</span> else<span class="cov0" title="0"> {
+                m.Put([]K{primaryKey}, values)
+        }</span>
+
+        <span class="cov8" title="1">return true</span>
+}
+
+// AppendValuesWithKeys appends values and associates them with multiple keys
+func (m *AppendableMultiKeyHashMap[K, V]) AppendValuesWithKeys(keys []K, values ...V) bool <span class="cov8" title="1">{
+        if len(keys) == 0 </span><span class="cov8" title="1">{
+                return false
+        }</span>
+
+        // Get existing values or create new slice
+        <span class="cov8" title="1">if currentValues, exists := m.Get(keys[0]); exists </span><span class="cov8" title="1">{
+                newValues := append(currentValues, values...)
+                m.Put(keys, newValues)
+        }</span> else<span class="cov8" title="1"> {
+                m.Put(keys, values)
+        }</span>
+
+        <span class="cov8" title="1">return true</span>
+}
+
+// GetSlice returns the slice associated with any key (primary or alias)
+func (m *AppendableMultiKeyHashMap[K, V]) GetSlice(key K) ([]V, bool) <span class="cov8" title="1">{
+        return m.Get(key)
+}</span>
+
+// UpdateSlice updates the entire slice for a given key and its aliases
+func (m *AppendableMultiKeyHashMap[K, V]) UpdateSlice(key K, newValues []V) bool <span class="cov8" title="1">{
+        if primaryKey, exists := m.GetPrimaryKey(key); exists </span><span class="cov8" title="1">{
+                m.Put(m.GetAllKeys(primaryKey), newValues)
+                return true
+        }</span>
+        <span class="cov0" title="0">return false</span>
+}
+
+// GetValuesByKeys retrieves values associated with an array of keys
+// If a key doesn't exist, it will be skipped in the result
+func (m *AppendableMultiKeyHashMap[K, V]) GetValuesByKeys(keys []K) map[K][]V <span class="cov8" title="1">{
+        result := make(map[K][]V)
+
+        for _, key := range keys </span><span class="cov8" title="1">{
+                if values, exists := m.GetSlice(key); exists </span><span class="cov8" title="1">{
+                        result[key] = values
+                }</span>
+        }
+
+        <span class="cov8" title="1">return result</span>
+}
+
+// GetValuesByKeysWithPrimary retrieves values associated with an array of keys
+// The returned map uses primary keys instead of the provided aliases
+func (m *AppendableMultiKeyHashMap[K, V]) GetValuesByKeysWithPrimary(keys []K) map[K][]V <span class="cov8" title="1">{
+        result := make(map[K][]V)
+
+        for _, key := range keys </span><span class="cov8" title="1">{
+                if primaryKey, exists := m.GetPrimaryKey(key); exists </span><span class="cov8" title="1">{
+                        if values, valExists := m.GetSlice(primaryKey); valExists </span><span class="cov8" title="1">{
+                                result[primaryKey] = values
+                        }</span>
+                }
+        }
+
+        <span class="cov8" title="1">return result</span>
+}
+</pre>
+		
+		<pre class="file" id="file10" style="display: none">package fastmap
+
 import "sync"
 
+// ThreadSafeMultiKeyHashMap provides thread-safe operations for MultiKeyHashMap through mutex synchronization
 type ThreadSafeMultiKeyHashMap[K comparable, V any] struct {
         mutex sync.RWMutex
         data  *MultiKeyHashMap[K, V]
 }
 
+// NewThreadSafeMultiKeyHashMap creates a new thread-safe MultiKeyHashMap
+// Example:
+//
+//        safeMap := NewThreadSafeMultiKeyHashMap[string, User]()
 func NewThreadSafeMultiKeyHashMap[K comparable, V any]() *ThreadSafeMultiKeyHashMap[K, V] <span class="cov8" title="1">{
         return &amp;ThreadSafeMultiKeyHashMap[K, V]{
                 data: NewMultiKeyHashMap[K, V](),
         }
 }</span>
 
+// Put adds a value with multiple keys with write lock
+// Example:
+//
+//        safeMap.Put([]string{"main", "alias1", "alias2"}, user)
 func (t *ThreadSafeMultiKeyHashMap[K, V]) Put(keys []K, value V) <span class="cov8" title="1">{
         t.mutex.Lock()
         defer t.mutex.Unlock()
         t.data.Put(keys, value)
 }</span>
 
+// Get retrieves a value by key with read lock
+// Example:
+//
+//        if user, exists := safeMap.Get("alias1"); exists {
+//            fmt.Printf("Found user: %v\n", user)
+//        }
 func (t *ThreadSafeMultiKeyHashMap[K, V]) Get(key K) (V, bool) <span class="cov8" title="1">{
         t.mutex.RLock()
         defer t.mutex.RUnlock()
         return t.data.Get(key)
 }</span>
 
+// GetPrimaryKey returns the primary key for any given key (alias or primary) with read lock
+// Example:
+//
+//        if primaryKey, exists := safeMap.GetPrimaryKey("alias1"); exists {
+//            fmt.Printf("Primary key: %v\n", primaryKey)
+//        }
 func (t *ThreadSafeMultiKeyHashMap[K, V]) GetPrimaryKey(key K) (K, bool) <span class="cov0" title="0">{
         t.mutex.RLock()
         defer t.mutex.RUnlock()
         return t.data.GetPrimaryKey(key)
 }</span>
 
+// GetAllKeys returns all keys (primary and aliases) associated with a given key with read lock
+// Example:
+//
+//        keys := safeMap.GetAllKeys("alias1")
+//        fmt.Printf("All associated keys: %v\n", keys)
 func (t *ThreadSafeMultiKeyHashMap[K, V]) GetAllKeys(key K) []K <span class="cov8" title="1">{
         t.mutex.RLock()
         defer t.mutex.RUnlock()
         return t.data.GetAllKeys(key)
 }</span>
 
+// AddAlias adds a new alias to an existing key with write lock
+// Example:
+//
+//        if safeMap.AddAlias("main", "newAlias") {
+//            fmt.Println("Alias added successfully")
+//        }
 func (t *ThreadSafeMultiKeyHashMap[K, V]) AddAlias(existingKey K, newAlias K) bool <span class="cov8" title="1">{
         t.mutex.Lock()
         defer t.mutex.Unlock()
         return t.data.AddAlias(existingKey, newAlias)
 }</span>
 
+// Size returns the number of unique primary keys with read lock
+// Example:
+//
+//        count := safeMap.Size()
+//        fmt.Printf("Number of unique entries: %d\n", count)
 func (t *ThreadSafeMultiKeyHashMap[K, V]) Size() int <span class="cov8" title="1">{
         t.mutex.RLock()
         defer t.mutex.RUnlock()
         return t.data.Size()
 }</span>
 
+// Clear removes all entries from the map with write lock
+// Example:
+//
+//        safeMap.Clear()
+//        fmt.Printf("Size after clear: %d\n", safeMap.Size())
 func (t *ThreadSafeMultiKeyHashMap[K, V]) Clear() <span class="cov8" title="1">{
         t.mutex.Lock()
         defer t.mutex.Unlock()
         t.data.Clear()
 }</span>
 
+// Remove removes a key and its associated aliases with write lock
+// Example:
+//
+//        safeMap.Remove("main")  // Removes main key and its aliases
+//        safeMap.Remove("alias") // Removes only the alias
 func (t *ThreadSafeMultiKeyHashMap[K, V]) Remove(key K) <span class="cov8" title="1">{
         t.mutex.Lock()
         defer t.mutex.Unlock()
         t.data.Remove(key)
 }</span>
 
+// RemoveWithCascade removes a key and all connected keys with write lock
+// Example:
+//
+//        safeMap.RemoveWithCascade("main") // Removes main key and all connected keys
 func (t *ThreadSafeMultiKeyHashMap[K, V]) RemoveWithCascade(key K) <span class="cov8" title="1">{
         t.mutex.Lock()
         defer t.mutex.Unlock()
@@ -676,14 +1153,19 @@ func (t *ThreadSafeMultiKeyHashMap[K, V]) RemoveWithCascade(key K) <span class="
 }</span>
 </pre>
 		
-		<pre class="file" id="file10" style="display: none">package fastmap
+		<pre class="file" id="file11" style="display: none">package fastmap
 
-// MultiKeyHashMap extends HashMap to support multiple keys for accessing values
+// MultiKeyHashMap extends HashMap to support multiple keys (aliases) for accessing values.
+// It maintains a primary key and optional aliases for each value.
 type MultiKeyHashMap[K comparable, V any] struct {
         data    map[K]V
         aliases map[K][]K // Maps primary keys to their aliases
 }
 
+// NewMultiKeyHashMap creates a new MultiKeyHashMap instance
+// Example:
+//
+//        map := NewMultiKeyHashMap[string, User]()
 func NewMultiKeyHashMap[K comparable, V any]() *MultiKeyHashMap[K, V] <span class="cov8" title="1">{
         return &amp;MultiKeyHashMap[K, V]{
                 data:    make(map[K]V),
@@ -691,6 +1173,10 @@ func NewMultiKeyHashMap[K comparable, V any]() *MultiKeyHashMap[K, V] <span clas
         }
 }</span>
 
+// Put adds or updates a value with multiple keys where first key is primary
+// Example:
+//
+//        map.Put([]string{"main", "alias1", "alias2"}, value)
 func (m *MultiKeyHashMap[K, V]) Put(keys []K, value V) <span class="cov8" title="1">{
         if len(keys) == 0 </span><span class="cov8" title="1">{
                 return
@@ -726,11 +1212,23 @@ func (m *MultiKeyHashMap[K, V]) Put(keys []K, value V) <span class="cov8" title=
         }</span>
 }
 
+// Get retrieves a value using any associated key (primary or alias)
+// Example:
+//
+//        if value, exists := map.Get("alias1"); exists {
+//            fmt.Printf("Found: %v\n", value)
+//        }
 func (m *MultiKeyHashMap[K, V]) Get(key K) (V, bool) <span class="cov8" title="1">{
         value, exists := m.data[key]
         return value, exists
 }</span>
 
+// GetPrimaryKey returns the primary key for any given key (alias or primary)
+// Example:
+//
+//        if primaryKey, exists := map.GetPrimaryKey("alias1"); exists {
+//            fmt.Printf("Primary: %v\n", primaryKey)
+//        }
 func (m *MultiKeyHashMap[K, V]) GetPrimaryKey(key K) (K, bool) <span class="cov8" title="1">{
         if _, exists := m.data[key]; !exists </span><span class="cov8" title="1">{
                 var zero K
@@ -756,6 +1254,11 @@ func (m *MultiKeyHashMap[K, V]) GetPrimaryKey(key K) (K, bool) <span class="cov8
         <span class="cov8" title="1">return key, true</span>
 }
 
+// GetAllKeys returns all keys (primary and aliases) associated with a given key
+// Example:
+//
+//        keys := map.GetAllKeys("alias1")
+//        fmt.Printf("All keys: %v\n", keys)
 func (m *MultiKeyHashMap[K, V]) GetAllKeys(key K) []K <span class="cov8" title="1">{
         // First check if the key exists
         if _, exists := m.data[key]; !exists </span><span class="cov8" title="1">{
@@ -780,9 +1283,13 @@ func (m *MultiKeyHashMap[K, V]) GetAllKeys(key K) []K <span class="cov8" title="
         <span class="cov8" title="1">return result</span>
 }
 
+// AddAlias adds a new alias to an existing key
+// Example:
+//
+//        success := map.AddAlias("main", "newAlias")
 func (m *MultiKeyHashMap[K, V]) AddAlias(existingKey K, newAlias K) bool <span class="cov8" title="1">{
         primaryKey, exists := m.GetPrimaryKey(existingKey)
-        if !exists </span><span class="cov0" title="0">{
+        if !exists </span><span class="cov8" title="1">{
                 return false
         }</span>
 
@@ -807,6 +1314,11 @@ func (m *MultiKeyHashMap[K, V]) AddAlias(existingKey K, newAlias K) bool <span c
         <span class="cov0" title="0">return false</span>
 }
 
+// Size returns the number of unique primary keys
+// Example:
+//
+//        count := map.Size()
+//        fmt.Printf("Unique entries: %d\n", count)
 func (m *MultiKeyHashMap[K, V]) Size() int <span class="cov8" title="1">{
         // Count primary keys only
         primaryKeys := make(map[K]bool)
@@ -819,19 +1331,22 @@ func (m *MultiKeyHashMap[K, V]) Size() int <span class="cov8" title="1">{
         <span class="cov8" title="1">return len(primaryKeys)</span>
 }
 
+// Clear removes all entries from the map
+// Example:
+//
+//        map.Clear()
 func (m *MultiKeyHashMap[K, V]) Clear() <span class="cov8" title="1">{
         m.data = make(map[K]V)
         m.aliases = make(map[K][]K)
 }</span>
 
-
-
-
-
-
-
-
 // Remove removes a key and potentially its connected keys
+// If removing primary key, all aliases are removed
+// If removing alias, only that alias is removed
+// Example:
+//
+//        map.Remove("main")  // Removes main key and aliases
+//        map.Remove("alias") // Removes only the alias
 func (m *MultiKeyHashMap[K, V]) Remove(key K) <span class="cov8" title="1">{
         // First check if this key exists
         if _, exists := m.data[key]; !exists </span><span class="cov8" title="1">{
@@ -844,15 +1359,15 @@ func (m *MultiKeyHashMap[K, V]) Remove(key K) <span class="cov8" title="1">{
                 return
         }</span>
 
-        <span class="cov8" title="1">if key == primaryKey </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if key == primaryKey </span><span class="cov8" title="1">{
                 // If removing primary key, remove all aliases
-                if aliases, exists := m.aliases[primaryKey]; exists </span><span class="cov0" title="0">{
-                        for _, alias := range aliases </span><span class="cov0" title="0">{
+                if aliases, exists := m.aliases[primaryKey]; exists </span><span class="cov8" title="1">{
+                        for _, alias := range aliases </span><span class="cov8" title="1">{
                                 delete(m.data, alias)
                         }</span>
-                        <span class="cov0" title="0">delete(m.aliases, primaryKey)</span>
+                        <span class="cov8" title="1">delete(m.aliases, primaryKey)</span>
                 }
-                <span class="cov0" title="0">delete(m.data, primaryKey)</span>
+                <span class="cov8" title="1">delete(m.data, primaryKey)</span>
         } else<span class="cov8" title="1"> {
                 // If removing an alias, just remove it and update the aliases list
                 delete(m.data, key)
@@ -874,7 +1389,10 @@ func (m *MultiKeyHashMap[K, V]) Remove(key K) <span class="cov8" title="1">{
         }
 }
 
-// RemoveWithCascade removes a key and all its connected keys through alias relationships
+// RemoveWithCascade removes a key and all connected keys through alias relationships
+// Example:
+//
+//        map.RemoveWithCascade("main") // Removes main key and all connected keys
 func (m *MultiKeyHashMap[K, V]) RemoveWithCascade(key K) <span class="cov8" title="1">{
         // First check if this key exists
         if _, exists := m.data[key]; !exists </span><span class="cov0" title="0">{
@@ -915,7 +1433,7 @@ func (m *MultiKeyHashMap[K, V]) traverseConnectedKeys(key K, visited map[K]bool,
         }</span>
 
         // Add primary key and check its aliases
-        <span class="cov8" title="1">if !visited[primaryKey] </span><span class="cov8" title="1">{
+        <span class="cov8" title="1">if !visited[primaryKey] </span><span class="cov0" title="0">{
                 m.traverseConnectedKeys(primaryKey, visited, result)
         }</span>
 
@@ -930,7 +1448,7 @@ func (m *MultiKeyHashMap[K, V]) traverseConnectedKeys(key K, visited map[K]bool,
 }
 </pre>
 		
-		<pre class="file" id="file11" style="display: none">package fastmap
+		<pre class="file" id="file12" style="display: none">package fastmap
 
 // Contains checks if a key exists in the ThreadSafeHashMap with read lock
 // Example:
@@ -1025,7 +1543,7 @@ func (t *ThreadSafeHashMap[K, V]) PutAll(other *ThreadSafeHashMap[K, V]) <span c
 }</span>
 </pre>
 		
-		<pre class="file" id="file12" style="display: none">package fastmap
+		<pre class="file" id="file13" style="display: none">package fastmap
 
 import "fmt"
 
@@ -1135,7 +1653,7 @@ func (h *HashMap[K, V]) PutAll(other *HashMap[K, V]) <span class="cov8" title="1
 }
 </pre>
 		
-		<pre class="file" id="file13" style="display: none">package fastmap
+		<pre class="file" id="file14" style="display: none">package fastmap
 
 import (
         "fmt"
@@ -1290,7 +1808,7 @@ func (m *RobinHoodMap[K, V]) Clear() <span class="cov8" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file14" style="display: none">package main
+		<pre class="file" id="file15" style="display: none">package main
 
 import (
         fastmap "github.com/billowdev/fastmap/hashmap"
