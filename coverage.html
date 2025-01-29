@@ -59,33 +59,35 @@
 				
 				<option value="file1">github.com/billowdev/fastmap/hashmap/appendable_threadsafe.go (8.3%)</option>
 				
-				<option value="file2">github.com/billowdev/fastmap/hashmap/config_operation_threadsafe.go (100.0%)</option>
+				<option value="file2">github.com/billowdev/fastmap/hashmap/combination.go (98.0%)</option>
 				
-				<option value="file3">github.com/billowdev/fastmap/hashmap/config_operations.go (100.0%)</option>
+				<option value="file3">github.com/billowdev/fastmap/hashmap/config_operation_threadsafe.go (100.0%)</option>
 				
-				<option value="file4">github.com/billowdev/fastmap/hashmap/conversion.go (100.0%)</option>
+				<option value="file4">github.com/billowdev/fastmap/hashmap/config_operations.go (100.0%)</option>
 				
-				<option value="file5">github.com/billowdev/fastmap/hashmap/core.go (100.0%)</option>
+				<option value="file5">github.com/billowdev/fastmap/hashmap/conversion.go (100.0%)</option>
 				
-				<option value="file6">github.com/billowdev/fastmap/hashmap/core_threadsafe.go (100.0%)</option>
+				<option value="file6">github.com/billowdev/fastmap/hashmap/core.go (100.0%)</option>
 				
-				<option value="file7">github.com/billowdev/fastmap/hashmap/functional.go (100.0%)</option>
+				<option value="file7">github.com/billowdev/fastmap/hashmap/core_threadsafe.go (100.0%)</option>
 				
-				<option value="file8">github.com/billowdev/fastmap/hashmap/functional_threadsafe.go (100.0%)</option>
+				<option value="file8">github.com/billowdev/fastmap/hashmap/functional.go (100.0%)</option>
 				
-				<option value="file9">github.com/billowdev/fastmap/hashmap/multiple_appendable.go (93.8%)</option>
+				<option value="file9">github.com/billowdev/fastmap/hashmap/functional_threadsafe.go (100.0%)</option>
 				
-				<option value="file10">github.com/billowdev/fastmap/hashmap/multiple_key_threadsafe.go (89.3%)</option>
+				<option value="file10">github.com/billowdev/fastmap/hashmap/multiple_appendable.go (86.0%)</option>
 				
-				<option value="file11">github.com/billowdev/fastmap/hashmap/mutiple_key.go (93.3%)</option>
+				<option value="file11">github.com/billowdev/fastmap/hashmap/multiple_key_threadsafe.go (89.3%)</option>
 				
-				<option value="file12">github.com/billowdev/fastmap/hashmap/operation_threadsafe.go (100.0%)</option>
+				<option value="file12">github.com/billowdev/fastmap/hashmap/mutiple_key.go (92.3%)</option>
 				
-				<option value="file13">github.com/billowdev/fastmap/hashmap/operations.go (95.5%)</option>
+				<option value="file13">github.com/billowdev/fastmap/hashmap/operation_threadsafe.go (100.0%)</option>
 				
-				<option value="file14">github.com/billowdev/fastmap/robinhood/robinhood.go (90.5%)</option>
+				<option value="file14">github.com/billowdev/fastmap/hashmap/operations.go (95.5%)</option>
 				
-				<option value="file15">github.com/billowdev/fastmap/sample/main.go (0.0%)</option>
+				<option value="file15">github.com/billowdev/fastmap/robinhood/robinhood.go (93.2%)</option>
+				
+				<option value="file16">github.com/billowdev/fastmap/sample/main.go (0.0%)</option>
 				
 				</select>
 			</div>
@@ -536,6 +538,131 @@ func (t *ThreadSafeAppendableHashMap[K, V]) RemoveDuplicates(key K, equals func(
 		
 		<pre class="file" id="file2" style="display: none">package fastmap
 
+import (
+        "fmt"
+)
+
+// ComboKeyHashMap maps combinations of keys to a single value
+type ComboKeyHashMap[K comparable, V any] struct {
+        data      map[string]V        // stores values
+        keyGroups map[K][]KeyGroup[K] // maps individual keys to their key groups
+}
+
+// NewComboKeyHashMap creates a new ComboKeyHashMap
+func NewComboKeyHashMap[K comparable, V any]() *ComboKeyHashMap[K, V] <span class="cov8" title="1">{
+        return &amp;ComboKeyHashMap[K, V]{
+                data:      make(map[string]V),
+                keyGroups: make(map[K][]KeyGroup[K]),
+        }
+}</span>
+
+// generateKeyString creates a unique string for a key group
+func (m *ComboKeyHashMap[K, V]) generateKeyString(keys []K) string <span class="cov8" title="1">{
+        sorted := make([]K, len(keys))
+        copy(sorted, keys)
+        sortSlice(sorted)
+        result := ""
+        for i, key := range sorted </span><span class="cov8" title="1">{
+                if i &gt; 0 </span><span class="cov8" title="1">{
+                        result += ","
+                }</span>
+                <span class="cov8" title="1">result += fmt.Sprintf("%v", key)</span>
+        }
+        <span class="cov8" title="1">return result</span>
+}
+
+// Put associates a value with a combination of keys
+func (m *ComboKeyHashMap[K, V]) Put(keys []K, value V) <span class="cov8" title="1">{
+        if len(keys) == 0 </span><span class="cov0" title="0">{
+                return
+        }</span>
+
+        <span class="cov8" title="1">keyString := m.generateKeyString(keys)
+        m.data[keyString] = value
+
+        // Store key group reference for each key
+        keyGroup := make(KeyGroup[K], len(keys))
+        copy(keyGroup, keys)
+
+        for _, key := range keys </span><span class="cov8" title="1">{
+                m.keyGroups[key] = append(m.keyGroups[key], keyGroup)
+        }</span>
+}
+
+// Get retrieves a value by its exact key combination
+func (m *ComboKeyHashMap[K, V]) Get(keys []K) (V, bool) <span class="cov8" title="1">{
+        keyString := m.generateKeyString(keys)
+        val, exists := m.data[keyString]
+        return val, exists
+}</span>
+
+// GetByKeys retrieves all values where all provided keys are part of the key group
+func (m *ComboKeyHashMap[K, V]) GetByKeys(keys []K) []V <span class="cov8" title="1">{
+        if len(keys) == 0 </span><span class="cov8" title="1">{
+                return []V{}
+        }</span>
+
+        // Track unique values using a map to avoid duplicates
+        <span class="cov8" title="1">valueMap := make(map[string]V)
+
+        // Check each key's groups
+        for _, key := range keys </span><span class="cov8" title="1">{
+                groups := m.keyGroups[key]
+                for _, group := range groups </span><span class="cov8" title="1">{
+                        // Check if all provided keys are in this group
+                        allKeysFound := true
+                        for _, searchKey := range keys </span><span class="cov8" title="1">{
+                                if !contains(group, searchKey) </span><span class="cov8" title="1">{
+                                        allKeysFound = false
+                                        break</span>
+                                }
+                        }
+
+                        <span class="cov8" title="1">if allKeysFound </span><span class="cov8" title="1">{
+                                keyString := m.generateKeyString(group)
+                                if val, exists := m.data[keyString]; exists </span><span class="cov8" title="1">{
+                                        valueMap[keyString] = val
+                                }</span>
+                        }
+                }
+        }
+
+        // Convert map to slice
+        <span class="cov8" title="1">result := make([]V, 0, len(valueMap))
+        for _, v := range valueMap </span><span class="cov8" title="1">{
+                result = append(result, v)
+        }</span>
+
+        <span class="cov8" title="1">return result</span>
+}
+
+// Helper functions
+
+func contains[K comparable](slice []K, item K) bool <span class="cov8" title="1">{
+        for _, v := range slice </span><span class="cov8" title="1">{
+                if v == item </span><span class="cov8" title="1">{
+                        return true
+                }</span>
+        }
+        <span class="cov8" title="1">return false</span>
+}
+
+func sortSlice[K comparable](slice []K) <span class="cov8" title="1">{
+        n := len(slice)
+        for i := 0; i &lt; n-1; i++ </span><span class="cov8" title="1">{
+                for j := 0; j &lt; n-i-1; j++ </span><span class="cov8" title="1">{
+                        if fmt.Sprintf("%v", slice[j]) &gt; fmt.Sprintf("%v", slice[j+1]) </span><span class="cov8" title="1">{
+                                slice[j], slice[j+1] = slice[j+1], slice[j]
+                        }</span>
+                }
+        }
+}
+
+type KeyGroup[K comparable] []K
+</pre>
+		
+		<pre class="file" id="file3" style="display: none">package fastmap
+
 // HandleFieldConfigs processes data using field configurations and returns results
 // Example:
 //
@@ -609,7 +736,7 @@ func (t *ThreadSafeHashMap[K, V]) ProcessFieldConfigs(
 }</span>
 </pre>
 		
-		<pre class="file" id="file3" style="display: none">package fastmap
+		<pre class="file" id="file4" style="display: none">package fastmap
 
 type FieldConfig[T any] struct {
         RowIndex *int
@@ -675,7 +802,7 @@ func (h *HashMap[K, V]) ProcessFieldConfigs(
 }
 </pre>
 		
-		<pre class="file" id="file4" style="display: none">package fastmap
+		<pre class="file" id="file5" style="display: none">package fastmap
 
 // ToMap returns the underlying map
 // Example:
@@ -706,7 +833,7 @@ func FromMap[K comparable, V any](m map[K]V) *HashMap[K, V] <span class="cov8" t
 }
 </pre>
 		
-		<pre class="file" id="file5" style="display: none">package fastmap
+		<pre class="file" id="file6" style="display: none">package fastmap
 
 type ValueCallback[K comparable, V any] func(key K, value V)
 
@@ -765,7 +892,7 @@ func (h *HashMap[K, V]) Size() int <span class="cov8" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file6" style="display: none">package fastmap
+		<pre class="file" id="file7" style="display: none">package fastmap
 
 import (
         "sync"
@@ -846,7 +973,7 @@ func (t *ThreadSafeHashMap[K, V]) Size() int <span class="cov8" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file7" style="display: none">package fastmap
+		<pre class="file" id="file8" style="display: none">package fastmap
 
 // Filter returns a new HashMap containing only the elements that satisfy the predicate
 // Example:
@@ -881,7 +1008,7 @@ func (h *HashMap[K, V]) Map(transform func(K, V) V) *HashMap[K, V] <span class="
 
 </pre>
 		
-		<pre class="file" id="file8" style="display: none">package fastmap
+		<pre class="file" id="file9" style="display: none">package fastmap
 
 // Filter returns a new ThreadSafeHashMap containing only the elements that satisfy the predicate with read lock
 // Example:
@@ -937,7 +1064,7 @@ func FromThreadSafeMap[K comparable, V any](m map[K]V) *ThreadSafeHashMap[K, V] 
 }</span>
 </pre>
 		
-		<pre class="file" id="file9" style="display: none">package fastmap
+		<pre class="file" id="file10" style="display: none">package fastmap
 
 // AppendableMultiKeyHashMap extends MultiKeyHashMap to support slice operations
 type AppendableMultiKeyHashMap[K comparable, V any] struct {
@@ -1030,9 +1157,68 @@ func (m *AppendableMultiKeyHashMap[K, V]) GetValuesByKeysWithPrimary(keys []K) m
 
         <span class="cov8" title="1">return result</span>
 }
+
+// GetByExactKeys retrieves values only if all provided keys are associated with the same value set
+// Returns the values and true if an exact match is found, empty slice and false otherwise
+func (m *AppendableMultiKeyHashMap[K, V]) GetByExactKeys(keys []K) ([]V, bool) <span class="cov8" title="1">{
+        if len(keys) == 0 </span><span class="cov8" title="1">{
+                return nil, false
+        }</span>
+
+        // First find the latest primary key among all input keys
+        <span class="cov8" title="1">var latestPrimaryKey K
+        var foundPrimary bool
+
+        for _, key := range keys </span><span class="cov8" title="1">{
+                if currentPrimary, exists := m.GetPrimaryKey(key); exists </span><span class="cov8" title="1">{
+                        if !foundPrimary </span><span class="cov8" title="1">{
+                                latestPrimaryKey = currentPrimary
+                                foundPrimary = true
+                        }</span> else<span class="cov8" title="1"> if currentPrimary != latestPrimaryKey </span><span class="cov8" title="1">{
+                                // If we find a different primary key that has one of our keys as an alias,
+                                // it means this key was reassigned more recently
+                                if _, exists := m.GetSlice(currentPrimary); exists </span><span class="cov8" title="1">{
+                                        latestPrimaryKey = currentPrimary
+                                }</span>
+                        }
+                }
+        }
+
+        <span class="cov8" title="1">if !foundPrimary </span><span class="cov8" title="1">{
+                return nil, false
+        }</span>
+
+        // Now verify all keys point to this latest primary key
+        <span class="cov8" title="1">for _, key := range keys </span><span class="cov8" title="1">{
+                if currentPrimary, exists := m.GetPrimaryKey(key); !exists || currentPrimary != latestPrimaryKey </span><span class="cov8" title="1">{
+                        return nil, false
+                }</span>
+        }
+
+        // Return the values associated with the latest primary key
+        <span class="cov8" title="1">values, exists := m.GetSlice(latestPrimaryKey)
+        return values, exists</span>
+}
+
+// GetByExactKeysAll returns a map of all entries where the provided keys match exactly
+// Each entry in the result map contains the primary key and its values
+func (m *AppendableMultiKeyHashMap[K, V]) GetByExactKeysAll(keyGroups [][]K) map[K][]V <span class="cov0" title="0">{
+        result := make(map[K][]V)
+
+        for _, keys := range keyGroups </span><span class="cov0" title="0">{
+                if values, exists := m.GetByExactKeys(keys); exists </span><span class="cov0" title="0">{
+                        // Use the primary key for storing the result
+                        if primaryKey, exists := m.GetPrimaryKey(keys[0]); exists </span><span class="cov0" title="0">{
+                                result[primaryKey] = values
+                        }</span>
+                }
+        }
+
+        <span class="cov0" title="0">return result</span>
+}
 </pre>
 		
-		<pre class="file" id="file10" style="display: none">package fastmap
+		<pre class="file" id="file11" style="display: none">package fastmap
 
 import "sync"
 
@@ -1153,7 +1339,7 @@ func (t *ThreadSafeMultiKeyHashMap[K, V]) RemoveWithCascade(key K) <span class="
 }</span>
 </pre>
 		
-		<pre class="file" id="file11" style="display: none">package fastmap
+		<pre class="file" id="file12" style="display: none">package fastmap
 
 // MultiKeyHashMap extends HashMap to support multiple keys (aliases) for accessing values.
 // It maintains a primary key and optional aliases for each value.
@@ -1289,7 +1475,7 @@ func (m *MultiKeyHashMap[K, V]) GetAllKeys(key K) []K <span class="cov8" title="
 //        success := map.AddAlias("main", "newAlias")
 func (m *MultiKeyHashMap[K, V]) AddAlias(existingKey K, newAlias K) bool <span class="cov8" title="1">{
         primaryKey, exists := m.GetPrimaryKey(existingKey)
-        if !exists </span><span class="cov8" title="1">{
+        if !exists </span><span class="cov0" title="0">{
                 return false
         }</span>
 
@@ -1448,7 +1634,7 @@ func (m *MultiKeyHashMap[K, V]) traverseConnectedKeys(key K, visited map[K]bool,
 }
 </pre>
 		
-		<pre class="file" id="file12" style="display: none">package fastmap
+		<pre class="file" id="file13" style="display: none">package fastmap
 
 // Contains checks if a key exists in the ThreadSafeHashMap with read lock
 // Example:
@@ -1543,7 +1729,7 @@ func (t *ThreadSafeHashMap[K, V]) PutAll(other *ThreadSafeHashMap[K, V]) <span c
 }</span>
 </pre>
 		
-		<pre class="file" id="file13" style="display: none">package fastmap
+		<pre class="file" id="file14" style="display: none">package fastmap
 
 import "fmt"
 
@@ -1653,7 +1839,7 @@ func (h *HashMap[K, V]) PutAll(other *HashMap[K, V]) <span class="cov8" title="1
 }
 </pre>
 		
-		<pre class="file" id="file14" style="display: none">package fastmap
+		<pre class="file" id="file15" style="display: none">package fastmap
 
 import (
         "fmt"
@@ -1778,7 +1964,7 @@ func (m *RobinHoodMap[K, V]) Remove(key K) bool <span class="cov8" title="1">{
                                 entry = &amp;m.entries[index]</span>
                         }
                 }
-                <span class="cov0" title="0">dist++
+                <span class="cov8" title="1">dist++
                 index = (index + 1) &amp; m.mask</span>
         }
 }
@@ -1808,7 +1994,7 @@ func (m *RobinHoodMap[K, V]) Clear() <span class="cov8" title="1">{
 }</span>
 </pre>
 		
-		<pre class="file" id="file15" style="display: none">package main
+		<pre class="file" id="file16" style="display: none">package main
 
 import (
         fastmap "github.com/billowdev/fastmap/hashmap"

@@ -91,3 +91,62 @@ func (m *AppendableMultiKeyHashMap[K, V]) GetValuesByKeysWithPrimary(keys []K) m
 
 	return result
 }
+
+// GetByExactKeys retrieves values only if all provided keys are associated with the same value set
+// Returns the values and true if an exact match is found, empty slice and false otherwise
+func (m *AppendableMultiKeyHashMap[K, V]) GetByExactKeys(keys []K) ([]V, bool) {
+	if len(keys) == 0 {
+		return nil, false
+	}
+
+	// First find the latest primary key among all input keys
+	var latestPrimaryKey K
+	var foundPrimary bool
+
+	for _, key := range keys {
+		if currentPrimary, exists := m.GetPrimaryKey(key); exists {
+			if !foundPrimary {
+				latestPrimaryKey = currentPrimary
+				foundPrimary = true
+			} else if currentPrimary != latestPrimaryKey {
+				// If we find a different primary key that has one of our keys as an alias,
+				// it means this key was reassigned more recently
+				if _, exists := m.GetSlice(currentPrimary); exists {
+					latestPrimaryKey = currentPrimary
+				}
+			}
+		}
+	}
+
+	if !foundPrimary {
+		return nil, false
+	}
+
+	// Now verify all keys point to this latest primary key
+	for _, key := range keys {
+		if currentPrimary, exists := m.GetPrimaryKey(key); !exists || currentPrimary != latestPrimaryKey {
+			return nil, false
+		}
+	}
+
+	// Return the values associated with the latest primary key
+	values, exists := m.GetSlice(latestPrimaryKey)
+	return values, exists
+}
+
+// GetByExactKeysAll returns a map of all entries where the provided keys match exactly
+// Each entry in the result map contains the primary key and its values
+func (m *AppendableMultiKeyHashMap[K, V]) GetByExactKeysAll(keyGroups [][]K) map[K][]V {
+	result := make(map[K][]V)
+
+	for _, keys := range keyGroups {
+		if values, exists := m.GetByExactKeys(keys); exists {
+			// Use the primary key for storing the result
+			if primaryKey, exists := m.GetPrimaryKey(keys[0]); exists {
+				result[primaryKey] = values
+			}
+		}
+	}
+
+	return result
+}

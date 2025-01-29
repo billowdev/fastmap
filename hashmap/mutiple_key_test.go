@@ -693,3 +693,133 @@ func TestAppendableMultiKeyHashMap_GetValuesByKeys_EdgeCases(t *testing.T) {
 		}
 	})
 }
+
+func TestAppendableMultiKeyHashMap_GetByExactKeys(t *testing.T) {
+	t.Run("exact match found", func(t *testing.T) {
+		m := fastmap.NewAppendableMultiKeyHashMap[string, int]()
+
+		// Set up data with multiple keys pointing to same values
+		m.AppendValuesWithKeys([]string{"key1", "alias1", "alias2"}, 1, 2, 3)
+
+		// Test getting by subset of keys
+		values, exists := m.GetByExactKeys([]string{"key1", "alias1"})
+		if !exists {
+			t.Error("Expected to find exact match")
+		}
+		if !reflect.DeepEqual(values, []int{1, 2, 3}) {
+			t.Errorf("Got values %v, want [1,2,3]", values)
+		}
+	})
+
+	t.Run("no match when keys point to different values", func(t *testing.T) {
+		m := fastmap.NewAppendableMultiKeyHashMap[string, int]()
+
+		// Set up data with keys pointing to different values
+		m.AppendValuesWithKeys([]string{"key1", "alias1"}, 1, 2)
+		m.AppendValuesWithKeys([]string{"key2", "alias2"}, 3, 4)
+
+		// Test getting by keys that point to different values
+		_, exists := m.GetByExactKeys([]string{"key1", "alias2"})
+		if exists {
+			t.Error("Should not find match for keys pointing to different values")
+		}
+	})
+
+	t.Run("empty keys", func(t *testing.T) {
+		m := fastmap.NewAppendableMultiKeyHashMap[string, int]()
+
+		_, exists := m.GetByExactKeys([]string{})
+		if exists {
+			t.Error("Should return false for empty keys")
+		}
+	})
+
+	t.Run("non-existent keys", func(t *testing.T) {
+		m := fastmap.NewAppendableMultiKeyHashMap[string, int]()
+
+		_, exists := m.GetByExactKeys([]string{"nonexistent1", "nonexistent2"})
+		if exists {
+			t.Error("Should return false for non-existent keys")
+		}
+	})
+}
+
+// func TestAppendableMultiKeyHashMap_GetByExactKeysAll(t *testing.T) {
+// 	t.Run("multiple exact matches", func(t *testing.T) {
+// 		m := fastmap.NewAppendableMultiKeyHashMap[string, int]()
+
+// 		// Set up multiple groups of related keys
+// 		m.AppendValuesWithKeys([]string{"key1", "alias1", "alias2"}, 1, 2)
+// 		m.AppendValuesWithKeys([]string{"key2", "alias3", "alias4"}, 3, 4)
+
+// 		keyGroups := [][]string{
+// 			{"key1", "alias1"},
+// 			{"key2", "alias3"},
+// 		}
+
+// 		result := m.GetByExactKeysAll(keyGroups)
+
+// 		expected := map[string][]int{
+// 			"key1": {1, 2},
+// 			"key2": {3, 4},
+// 		}
+
+// 		if !reflect.DeepEqual(result, expected) {
+// 			t.Errorf("Got result %v, want %v", result, expected)
+// 		}
+// 	})
+
+// 	t.Run("some matches, some not", func(t *testing.T) {
+// 		m := fastmap.NewAppendableMultiKeyHashMap[string, int]()
+
+// 		m.AppendValuesWithKeys([]string{"key1", "alias1"}, 1, 2)
+
+// 		keyGroups := [][]string{
+// 			{"key1", "alias1"},         // should match
+// 			{"nonexistent1", "alias2"}, // should not match
+// 		}
+
+// 		result := m.GetByExactKeysAll(keyGroups)
+
+// 		expected := map[string][]int{
+// 			"key1": {1, 2},
+// 		}
+
+// 		if !reflect.DeepEqual(result, expected) {
+// 			t.Errorf("Got result %v, want %v", result, expected)
+// 		}
+// 	})
+
+// 	t.Run("shared aliases", func(t *testing.T) {
+// 		m := fastmap.NewAppendableMultiKeyHashMap[string, int]()
+
+// 		// Set up data with a shared alias
+// 		m.AppendValuesWithKeys([]string{"key1", "shared"}, 1, 2)
+// 		m.AppendValuesWithKeys([]string{"key2", "shared"}, 3, 4)
+
+// 		keyGroups := [][]string{
+// 			{"key1", "shared"},
+// 			{"key2", "shared"},
+// 		}
+
+// 		result := m.GetByExactKeysAll(keyGroups)
+
+// 		// Only the latest assignment should match
+// 		expected := map[string][]int{
+// 			"key2": {3, 4},
+// 		}
+
+// 		if !reflect.DeepEqual(result, expected) {
+// 			t.Errorf("Got result %v, want %v", result, expected)
+// 		}
+// 	})
+
+// 	t.Run("empty key groups", func(t *testing.T) {
+// 		m := fastmap.NewAppendableMultiKeyHashMap[string, int]()
+
+// 		result := m.GetByExactKeysAll([][]string{})
+// 		if len(result) != 0 {
+// 			t.Error("Should return empty map for empty key groups")
+// 		}
+// 	})
+// }
